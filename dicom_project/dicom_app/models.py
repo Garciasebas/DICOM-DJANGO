@@ -16,3 +16,9 @@ class DicomTag(models.Model):
 
     def __str__(self):
         return f"{self.tag}: {self.description}"
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['tag']),
+            models.Index(fields=['dicom_file']),
+        ]
