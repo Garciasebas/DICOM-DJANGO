@@ -1,9 +1,16 @@
 import pydicom
 from django.shortcuts import render
-from .forms import DicomUploadForm
+from django.db.models import Q
+from django.urls import reverse_lazy
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from .models import DicomFile, DicomTag
+from .forms import DicomFileForm, DicomTagForm, DicomUploadForm
 import tempfile
 import uuid
+
+def generate_pacient_code():
+    # Genera un UUID4 y toma los primeros 8 caracteres en mayúsculas
+    return str(uuid.uuid4())[:8].upper()
 
 def anonymize_dicom(ds):
     """
@@ -68,9 +75,12 @@ def upload_dicom(request):
             temp_path = tempfile.NamedTemporaryFile(delete=False).name
             ds.save_as(temp_path)
 
-            # Crear una instancia de DicomFile para asociar los tags anonimizados
+            # Generar un código único para el paciente
+            pacient_code = generate_pacient_code()
+
+            # Crear una instancia de DicomFile con el código generado
             dicom_instance = DicomFile.objects.create(
-                patient_name="Anonymous"  # Nombre anonimizado
+                patient_name=pacient_code
             )
 
             dicom_data = []  # Para almacenar los datos del DICOM que vamos a mostrar
@@ -98,3 +108,38 @@ def upload_dicom(request):
         form = DicomUploadForm()
 
     return render(request, 'upload.html', {'form': form})
+
+class DicomFileListView(ListView):
+    model = DicomFile
+    template_name = 'dicomfile_list.html'  # Nombre de tu plantilla
+    context_object_name = 'dicom_files'
+    paginate_by = 10  # Número de resultados por página
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        query = self.request.GET.get('q')
+        if query:
+            queryset = queryset.filter(Q(patient_name__icontains=query))
+        return queryset
+
+class DicomFileDetailView(DetailView):
+    model = DicomFile
+    template_name = 'dicomfile_detail.html'  # Plantilla que mostrarás
+    context_object_name = 'dicom_file'  # Nombre del contexto en la plantilla
+
+class DicomFileCreateView(CreateView):
+    model = DicomFile
+    form_class = DicomFileForm
+    template_name = 'dicomfile_form.html'
+    success_url = reverse_lazy('dicomfile_list')
+
+class DicomFileUpdateView(UpdateView):
+    model = DicomFile
+    form_class = DicomFileForm
+    template_name = 'dicomfile_form.html'
+    success_url = reverse_lazy('dicomfile_list')
+
+class DicomFileDeleteView(DeleteView):
+    model = DicomFile
+    template_name = 'dicomfile_confirm_delete.html'
+    success_url = reverse_lazy('dicomfile_list')

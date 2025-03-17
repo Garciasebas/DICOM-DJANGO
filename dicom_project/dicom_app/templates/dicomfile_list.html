@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Listado de Archivos DICOM</title>
+</head>
+<body>
+    <h1>Listado de Archivos DICOM</h1>
+
+    <form method="get" action="{% url 'dicom_search' %}">
+        <input type="text" name="q" placeholder="Buscar por nombre de paciente" value="{{ request.GET.q }}">
+        <button type="submit">Buscar</button>
+    </form>
+
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Nombre del Paciente</th>
+                <th>Fecha de Subida</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for dicom in dicom_files %}
+            <tr>
+                <td>{{ dicom.patient_name }}</td>
+                <td>{{ dicom.upload_date }}</td>
+                <td><a href="/dicom/{{ dicom.id }}/">Ver detalles</a></td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="3">No se encontraron archivos DICOM.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Paginación -->
+    {% if is_paginated %}
+        <div>
+            <span>
+                Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}.
+            </span>
+            <div>
+                {% if page_obj.has_previous %}
+                    <a href="?q={{ request.GET.q }}&page=1">Primera</a>
+                    <a href="?q={{ request.GET.q }}&page={{ page_obj.previous_page_number }}">Anterior</a>
+                {% endif %}
+
+                {% if page_obj.has_next %}
+                    <a href="?q={{ request.GET.q }}&page={{ page_obj.next_page_number }}">Siguiente</a>
+                    <a href="?q={{ request.GET.q }}&page={{ page_obj.paginator.num_pages }}">Última</a>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+</body>
+</html>

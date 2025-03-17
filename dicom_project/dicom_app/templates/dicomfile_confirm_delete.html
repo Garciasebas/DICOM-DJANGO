@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h1>Confirmar Eliminación</h1>
+  <p>¿Estás seguro de que deseas eliminar el archivo DICOM "{{ object }}"?</p>
+  <form method="post">
+    {% csrf_token %}
+    <button type="submit">Eliminar</button>
+  </form>
+  <a href="{% url 'dicomfile_list' %}">Cancelar</a>
+{% endblock %}
