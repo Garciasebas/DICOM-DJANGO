@@ -3,6 +3,15 @@ from django.shortcuts import render
 from django.db.models import Q
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
+from django.http import FileResponse, Http404
+from django.shortcuts import get_object_or_404
+import os
+import shutil
+import tempfile
+from pathlib import Path
+import dicom2nifti
+import json
+import zipfile
 from .models import DicomFile, DicomTag
 from .forms import DicomFileForm, DicomTagForm, DicomUploadForm
 import tempfile
@@ -71,16 +80,20 @@ def upload_dicom(request):
             # Aplicar anonimización antes de guardar los datos
             ds = anonymize_dicom(ds)
 
-            # Guardar el archivo anonimizado temporalmente
-            temp_path = tempfile.NamedTemporaryFile(delete=False).name
-            ds.save_as(temp_path)
-
-            # Generar un código único para el paciente
+            # Generar nombre único y ruta permanente
             pacient_code = generate_pacient_code()
+            save_dir = Path("media/dicoms/")
+            save_dir.mkdir(parents=True, exist_ok=True)
+            filename = f"{pacient_code}_{uuid.uuid4().hex[:6]}.dcm"
+            full_path = save_dir / filename
 
-            # Crear una instancia de DicomFile con el código generado
+            # Guardar el archivo anonimizado
+            ds.save_as(str(full_path))
+
+            # Crear instancia DicomFile con ruta al archivo
             dicom_instance = DicomFile.objects.create(
-                patient_name=pacient_code
+                patient_name=pacient_code,
+                file=str(full_path)
             )
 
             dicom_data = []  # Para almacenar los datos del DICOM que vamos a mostrar
@@ -143,3 +156,63 @@ class DicomFileDeleteView(DeleteView):
     model = DicomFile
     template_name = 'dicomfile_confirm_delete.html'
     success_url = reverse_lazy('dicomfile_list')
+
+def export_dicom_to_bids(request, pk):
+    dicom_instance = get_object_or_404(DicomFile, pk=pk)
+    dicom_path = dicom_instance.file
+
+    if not os.path.exists(dicom_path):
+        raise Http404("Archivo DICOM no encontrado")
+
+    # Crear estructura temporal BIDS
+    temp_dir = tempfile.mkdtemp()
+    subject_id = f"sub-{dicom_instance.patient_name.lower()}"
+    session_id = "ses-01"
+    anat_dir = Path(temp_dir) / subject_id / session_id / "anat"
+    anat_dir.mkdir(parents=True, exist_ok=True)
+
+    # Convertir a NIfTI
+    try:
+        dicom2nifti.convert_directory(os.path.dirname(dicom_path), anat_dir, compression=True)
+    except Exception as e:
+        raise Exception(f"Error al convertir a NIfTI: {e}")
+
+    # Crear JSON de metadatos
+    metadata = {
+        "Modality": "MRI",
+        "Manufacturer": "Unknown",
+        "PatientName": dicom_instance.patient_name,
+        "InstitutionName": "Anonymous Hospital"
+    }
+    json_path = list(anat_dir.glob("*.nii.gz"))[0].with_suffix(".json")
+    with open(json_path, 'w') as jf:
+        json.dump(metadata, jf, indent=4)
+
+    # dataset_description.json
+    with open(Path(temp_dir) / "dataset_description.json", 'w') as df:
+        json.dump({
+            "Name": "Exported BIDS Dataset",
+            "BIDSVersion": "1.8.0"
+        }, df, indent=4)
+
+    # Comprimir en .zip
+    zip_path = tempfile.NamedTemporaryFile(delete=False, suffix=".zip").name
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, _, files in os.walk(temp_dir):
+            for file in files:
+                full_path = os.path.join(root, file)
+                arcname = os.path.relpath(full_path, temp_dir)
+                zipf.write(full_path, arcname=arcname)
+
+    # Descargar como FileResponse
+    response = FileResponse(open(zip_path, 'rb'), as_attachment=True, filename=f"{subject_id}_bids.zip")
+    return response
+
+def zip_bids_folder(bids_dir):
+    zip_path = bids_dir + '.zip'
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, _, files in os.walk(bids_dir):
+            for file in files:
+                file_path = os.path.join(root, file)
+                zipf.write(file_path, arcname=os.path.relpath(file_path, bids_dir))
+    return zip_path
