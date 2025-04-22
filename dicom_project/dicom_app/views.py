@@ -5,16 +5,20 @@ from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404
+from django.http import HttpResponse
 import os
+import traceback
 import shutil
 import tempfile
 from pathlib import Path
-import dicom2nifti
+from dicom2nifti import convert_directory
 import json
 import zipfile
 from .models import DicomFile, DicomTag
 from .forms import DicomFileForm, DicomTagForm, DicomUploadForm
 import tempfile
+import numpy as np
+import nibabel as nib
 import uuid
 
 def generate_pacient_code():
@@ -157,6 +161,19 @@ class DicomFileDeleteView(DeleteView):
     template_name = 'dicomfile_confirm_delete.html'
     success_url = reverse_lazy('dicomfile_list')
 
+def convert_single_dicom_to_nifti(dicom_path, output_path):
+    ds = pydicom.dcmread(dicom_path)
+    if "PixelData" not in ds:
+        raise Exception("DICOM no contiene datos de imagen (PixelData)")
+
+    image = ds.pixel_array
+    if image.ndim < 2:
+        raise Exception("La imagen es inválida o vacía.")
+
+    affine = np.eye(4)
+    nii = nib.Nifti1Image(image, affine)
+    nib.save(nii, output_path)
+
 def export_dicom_to_bids(request, pk):
     dicom_instance = get_object_or_404(DicomFile, pk=pk)
     dicom_path = dicom_instance.file
@@ -164,18 +181,36 @@ def export_dicom_to_bids(request, pk):
     if not os.path.exists(dicom_path):
         raise Http404("Archivo DICOM no encontrado")
 
-    # Crear estructura temporal BIDS
     temp_dir = tempfile.mkdtemp()
     subject_id = f"sub-{dicom_instance.patient_name.lower()}"
     session_id = "ses-01"
     anat_dir = Path(temp_dir) / subject_id / session_id / "anat"
     anat_dir.mkdir(parents=True, exist_ok=True)
 
-    # Convertir a NIfTI
+    output_nifti = anat_dir / 'output.nii.gz'
     try:
-        dicom2nifti.convert_directory(os.path.dirname(dicom_path), anat_dir, compression=True)
+        # Crear carpeta temporal con el único DICOM
+        temp_dicom_dir = tempfile.mkdtemp()
+        temp_dicom_path = os.path.join(temp_dicom_dir, 'image.dcm')
+        shutil.copyfile(dicom_path, temp_dicom_path)
+        convert_directory(temp_dicom_dir, anat_dir, compression=True)
     except Exception as e:
-        raise Exception(f"Error al convertir a NIfTI: {e}")
+        print("❌ dicom2nifti falló:", str(e))
+
+    # Si aún no se generó ningún NIfTI, usar método alternativo
+    nii_files = list(anat_dir.glob("*.nii.gz"))
+    if not nii_files:
+        try:
+            convert_single_dicom_to_nifti(dicom_path, output_nifti)
+            nii_files = [output_nifti]
+        except Exception as e:
+            traceback.print_exc()
+            return HttpResponse(f"No se pudo convertir el DICOM: {e}", status=500)
+
+    if not nii_files:
+        return HttpResponse("❌ La conversión falló: no se generó ningún archivo .nii.gz", status=500)
+
+    output_nifti = nii_files[0]
 
     # Crear JSON de metadatos
     metadata = {
@@ -184,18 +219,21 @@ def export_dicom_to_bids(request, pk):
         "PatientName": dicom_instance.patient_name,
         "InstitutionName": "Anonymous Hospital"
     }
-    json_path = list(anat_dir.glob("*.nii.gz"))[0].with_suffix(".json")
-    with open(json_path, 'w') as jf:
-        json.dump(metadata, jf, indent=4)
 
-    # dataset_description.json
+    try:
+        json_path = output_nifti.with_suffix(".json")
+        with open(json_path, 'w') as jf:
+            json.dump(metadata, jf, indent=4)
+    except Exception as e:
+        return HttpResponse(f"No se pudo crear el archivo JSON: {e}", status=500)
+
     with open(Path(temp_dir) / "dataset_description.json", 'w') as df:
         json.dump({
             "Name": "Exported BIDS Dataset",
             "BIDSVersion": "1.8.0"
         }, df, indent=4)
 
-    # Comprimir en .zip
+    # Comprimir todo
     zip_path = tempfile.NamedTemporaryFile(delete=False, suffix=".zip").name
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
         for root, _, files in os.walk(temp_dir):
@@ -204,9 +242,7 @@ def export_dicom_to_bids(request, pk):
                 arcname = os.path.relpath(full_path, temp_dir)
                 zipf.write(full_path, arcname=arcname)
 
-    # Descargar como FileResponse
-    response = FileResponse(open(zip_path, 'rb'), as_attachment=True, filename=f"{subject_id}_bids.zip")
-    return response
+    return FileResponse(open(zip_path, 'rb'), as_attachment=True, filename=f"{subject_id}_bids.zip")
 
 def zip_bids_folder(bids_dir):
     zip_path = bids_dir + '.zip'
