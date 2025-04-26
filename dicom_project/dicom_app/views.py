@@ -119,7 +119,7 @@ def upload_dicom(request):
                 })
 
             # Pasar los datos DICOM anonimizados a la plantilla de éxito
-            return render(request, 'success.html', {'dicom_data': dicom_data, 'patient_name': "Anonymous"})
+            return render(request, 'success.html', {'dicom_data': dicom_data, 'patient_name': pacient_code})
 
     else:
         form = DicomUploadForm()
