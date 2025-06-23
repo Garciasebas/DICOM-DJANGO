@@ -1,42 +1,52 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detalle del Archivo DICOM</title>
-</head>
-<body>
-    <h1>Detalle del Archivo DICOM</h1>
+{% extends 'base.html' %}
 
-    <h2>Nombre del Paciente: {{ dicom_file.patient_name }}</h2>
-    <h3>Fecha de Subida: {{ dicom_file.upload_date }}</h3>
+{% block content %}
+    <div class="detail-card main-card">
+        <h1 class="detail-title">Detalle del Archivo DICOM</h1>
 
-    <h3>Tags Asociados:</h3>
-    <table border="1">
-        <thead>
-            <tr>
-                <th>Tag</th>
-                <th>Descripción</th>
-                <th>VR</th>
-                <th>Valor</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for tag in dicom_file.tags.all %}
-            <tr>
-                <td>{{ tag.tag }}</td>
-                <td>{{ tag.description }}</td>
-                <td>{{ tag.vr }}</td>
-                <td>{{ tag.value }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="4">No hay tags asociados a este archivo DICOM.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+        <div class="meta-info">
+            <strong>Nombre del Paciente:</strong> {{ dicom_file.patient_name }}<br>
+            <strong>Fecha de Subida:</strong> {{ dicom_file.upload_date|date:"Y-m-d H:i" }}
+        </div>
 
-    <a href="{% url 'dicom_search' %}">Volver al listado</a>
-</body>
-</html>
+        <div class="mb-4 d-flex justify-content-center gap-3">
+            <a href="{% url 'dicomfile_edit' dicom_file.id %}" class="btn btn-warning fw-bold">
+                ✏️ Editar
+            </a>
+            <a href="{% url 'dicomfile_delete' dicom_file.id %}" class="btn btn-danger fw-bold">
+                🗑️ Eliminar
+            </a>
+            <a href="{% url 'dicom_search' %}" class="btn btn-outline-secondary fw-bold">
+                ← Volver al listado
+            </a>
+        </div>
+
+        <h5 class="mb-3 text-center">Tags Asociados:</h5>
+        <div class="table-responsive">
+            <table class="table table-hover dicom-table align-middle">
+                <thead>
+                    <tr>
+                        <th>Tag</th>
+                        <th>Descripción</th>
+                        <th>VR</th>
+                        <th>Valor</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tag in dicom_file.tags.all %}
+                    <tr>
+                        <td>{{ tag.tag }}</td>
+                        <td>{{ tag.description }}</td>
+                        <td>{{ tag.vr }}</td>
+                        <td>{{ tag.value }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted">No hay tags asociados a este archivo DICOM.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}

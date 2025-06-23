@@ -6,10 +6,12 @@ from .views import (
     DicomFileUpdateView,
     DicomFileDeleteView,
     upload_dicom,
-    export_dicom_to_bids
+    export_dicom_to_bids,
+    main_menu
 )
 urlpatterns = [
-    path('', DicomFileListView.as_view(), name='dicomfile_list'),
+    path('', main_menu, name='main_menu'),
+    path('dicomfile_list/', DicomFileListView.as_view(), name='dicomfile_list'),
     path('<int:pk>/', DicomFileDetailView.as_view(), name='dicomfile_detail'),
     path('dicomfile/new/', DicomFileCreateView.as_view(), name='dicomfile_create'),
     path('dicomfile/<int:pk>/edit/', DicomFileUpdateView.as_view(), name='dicomfile_edit'),

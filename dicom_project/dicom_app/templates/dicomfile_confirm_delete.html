@@ -1,11 +1,24 @@
 {% extends 'base.html' %}
 
 {% block content %}
-  <h1>Confirmar Eliminación</h1>
-  <p>¿Estás seguro de que deseas eliminar el archivo DICOM "{{ object }}"?</p>
-  <form method="post">
-    {% csrf_token %}
-    <button type="submit">Eliminar</button>
-  </form>
-  <a href="{% url 'dicomfile_list' %}">Cancelar</a>
+<div class="container">
+  <div class="d-flex justify-content-center align-items-center" style="min-height: 70vh;">
+    <div class="card shadow p-4" style="max-width: 400px; border-radius: 16px;">
+      <h2 class="mb-3 text-danger text-center" style="font-weight:700;">Confirmar Eliminación</h2>
+      <p class="mb-4 text-center">
+        ¿Estás seguro de que deseas eliminar el archivo DICOM <br>
+        <span class="fw-bold text-primary">"{{ object }}"</span>?
+      </p>
+      <form method="post" class="d-grid gap-2">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger btn-lg fw-bold">
+          🗑️ Eliminar
+        </button>
+      </form>
+      <a href="{% url 'dicomfile_list' %}" class="btn btn-outline-secondary mt-3 w-100 fw-bold">
+        Cancelar
+      </a>
+    </div>
+  </div>
+</div>
 {% endblock %}

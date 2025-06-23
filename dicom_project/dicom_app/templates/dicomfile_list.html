@@ -1,62 +1,85 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Listado de Archivos DICOM</title>
-</head>
-<body>
-    <h1>Listado de Archivos DICOM</h1>
+{% extends 'base.html' %}
 
-    <form method="get" action="{% url 'dicom_search' %}">
-        <input type="text" name="q" placeholder="Buscar por nombre de paciente" value="{{ request.GET.q }}">
-        <button type="submit">Buscar</button>
-    </form>
+{% block content %}
+    <div class="dicom-card main-card">
+        <h1 class="dicom-title">Listado de Archivos DICOM</h1>
+        <form method="get" action="{% url 'dicom_search' %}" class="mb-4 search-box d-flex justify-content-center">
+            <input type="text" class="form-control" name="q" placeholder="Buscar por nombre de paciente" value="{{ request.GET.q }}">
+            <button type="submit" class="btn ms-2">🔍 Buscar</button>
+        </form>
 
-    <table border="1">
-        <thead>
-            <tr>
-                <th>Nombre del Paciente</th>
-                <th>Fecha de Subida</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for dicom in dicom_files %}
-            <tr>
-                <td>{{ dicom.patient_name }}</td>
-                <td>{{ dicom.upload_date }}</td>
-                <td>
-                    <a href="{% url 'dicomfile_detail' dicom.id %}">Ver detalles</a> |
-                    <a href="{% url 'export_dicom_to_bids' dicom.id %}">Exportar a BIDS</a>
-                </td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="3">No se encontraron archivos DICOM.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Nombre del Paciente</th>
+                        <th>Fecha de Subida</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dicom in dicom_files %}
+                    <tr>
+                        <td>{{ dicom.patient_name }}</td>
+                        <td>{{ dicom.upload_date|date:"Y-m-d H:i" }}</td>
+                        <td>
+                            <a href="{% url 'dicomfile_detail' dicom.id %}">Detalles</a>
+                            |
+                            <a href="{% url 'export_dicom_to_bids' dicom.id %}">Exportar a BIDS</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="text-center text-muted">No se encontraron archivos DICOM.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
 
-    <!-- Paginación -->
-    {% if is_paginated %}
-        <div>
-            <span>
-                Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}.
-            </span>
-            <div>
+        <!-- Paginación Bootstrap -->
+        {% if is_paginated %}
+            <nav>
+              <ul class="pagination mt-3">
                 {% if page_obj.has_previous %}
-                    <a href="?q={{ request.GET.q }}&page=1">Primera</a>
-                    <a href="?q={{ request.GET.q }}&page={{ page_obj.previous_page_number }}">Anterior</a>
+                    <li class="page-item">
+                      <a class="page-link" href="?q={{ request.GET.q }}&page=1">Primera</a>
+                    </li>
+                    <li class="page-item">
+                      <a class="page-link" href="?q={{ request.GET.q }}&page={{ page_obj.previous_page_number }}">Anterior</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                      <span class="page-link">Primera</span>
+                    </li>
+                    <li class="page-item disabled">
+                      <span class="page-link">Anterior</span>
+                    </li>
                 {% endif %}
+
+                <li class="page-item active">
+                  <span class="page-link">
+                    Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                  </span>
+                </li>
 
                 {% if page_obj.has_next %}
-                    <a href="?q={{ request.GET.q }}&page={{ page_obj.next_page_number }}">Siguiente</a>
-                    <a href="?q={{ request.GET.q }}&page={{ page_obj.paginator.num_pages }}">Última</a>
+                    <li class="page-item">
+                      <a class="page-link" href="?q={{ request.GET.q }}&page={{ page_obj.next_page_number }}">Siguiente</a>
+                    </li>
+                    <li class="page-item">
+                      <a class="page-link" href="?q={{ request.GET.q }}&page={{ page_obj.paginator.num_pages }}">Última</a>
+                    </li>
+                {% else %}
+                    <li class="page-item disabled">
+                      <span class="page-link">Siguiente</span>
+                    </li>
+                    <li class="page-item disabled">
+                      <span class="page-link">Última</span>
+                    </li>
                 {% endif %}
-            </div>
-        </div>
-    {% endif %}
-</body>
-</html>
+              </ul>
+            </nav>
+        {% endif %}
+    </div>
+{% endblock %}

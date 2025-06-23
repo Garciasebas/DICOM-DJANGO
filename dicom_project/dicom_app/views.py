@@ -121,6 +121,7 @@ def upload_dicom(request):
             # Pasar los datos DICOM anonimizados a la plantilla de éxito
             return render(request, 'success.html', {'dicom_data': dicom_data, 'patient_name': pacient_code})
 
+
     else:
         form = DicomUploadForm()
 
@@ -252,3 +253,6 @@ def zip_bids_folder(bids_dir):
                 file_path = os.path.join(root, file)
                 zipf.write(file_path, arcname=os.path.relpath(file_path, bids_dir))
     return zip_path
+
+def main_menu(request):
+    return render(request, 'main_menu.html')
