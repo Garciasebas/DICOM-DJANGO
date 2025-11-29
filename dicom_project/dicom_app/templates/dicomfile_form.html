@@ -1,29 +1,76 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
-    <div class="main-card upload-card" style="max-width:500px;">
-        <h2 class="mb-4 text-center" style="font-weight:700;">
-            {% if object %}Editar{% else %}Subir{% endif %} Archivo DICOM
-        </h2>
-        <form method="post" enctype="multipart/form-data" novalidate>
-            {% csrf_token %}
-            {% for field in form %}
-                <div class="mb-3">
-                    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-                    {{ field }}
-                    {% if field.errors %}
-                        <div class="text-danger small">
-                            {{ field.errors|striptags }}
-                        </div>
-                    {% endif %}
-                </div>
-            {% endfor %}
-            <button type="submit" class="btn btn-success w-100 fw-bold">
-                {% if object %}Actualizar{% else %}Subir{% endif %}
-            </button>
-        </form>
-        <a href="{% url 'dicomfile_list' %}" class="btn btn-outline-secondary w-100 mt-3 fw-bold">
-            Cancelar
-        </a>
+<div class="container-fluid p-0" style="background-color: #E6F0FF; min-height: 100vh;">
+    <!-- Header Title -->
+    <div class="row mb-4 pt-4">
+        <div class="col-12 text-center">
+            <h1 style="color: #5B7CFA; font-weight: 800; font-size: 2.5rem; letter-spacing: 2px;">DICOM HUB</h1>
+        </div>
     </div>
+
+    <!-- Edit Form Card -->
+    <div class="row justify-content-center px-4">
+        <div class="col-12 col-md-6 col-lg-4">
+            <div class="card border-0 shadow-sm" style="border-radius: 20px; padding: 2rem;">
+                <div class="card-body p-0">
+
+                    <!-- Title -->
+                    <h2 class="mb-4 text-center" style="font-weight: 700; font-size: 1.8rem; color: #000;">
+                        Editar Archivo DICOM
+                    </h2>
+
+                    <!-- Form -->
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <!-- Patient Name Field -->
+                        <div class="mb-3">
+                            <label for="id_patient_name" class="form-label"
+                                style="font-weight: 600; color: #000; font-size: 0.9rem;">
+                                Nombre del Paciente
+                            </label>
+                            <input type="text" class="form-control" id="id_patient_name" name="patient_name"
+                                value="{{ form.patient_name.value|default:'' }}"
+                                style="border: 1px solid #ddd; border-radius: 6px; padding: 0.6rem 0.75rem; font-size: 0.95rem;">
+                        </div>
+
+                        <!-- Actualizar Button (Green) -->
+                        <button type="submit" class="btn w-100 mb-2"
+                            style="background-color: #28A745; color: #fff; font-weight: 700; border: none; border-radius: 6px; padding: 0.7rem;">
+                            Actualizar
+                        </button>
+
+                        <!-- Cancelar Button (Outline) -->
+                        <a href="{% url 'dicomfile_detail' object.pk %}" class="btn btn-outline-secondary w-100"
+                            style="border-radius: 6px; padding: 0.7rem; font-weight: 600; border-color: #999; color: #666;">
+                            Cancelar
+                        </a>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Custom overrides for this specific page */
+    .content-area {
+        background-color: #E6F0FF !important;
+        padding: 0 !important;
+    }
+
+    .form-control:focus {
+        border-color: #5B7CFA;
+        box-shadow: 0 0 0 0.2rem rgba(91, 124, 250, 0.25);
+    }
+
+    .btn-outline-secondary:hover {
+        background-color: #f8f9fa;
+        border-color: #666;
+        color: #333;
+    }
+</style>
 {% endblock %}

@@ -1,52 +1,118 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
-    <div class="detail-card main-card">
-        <h1 class="detail-title">Detalle del Archivo DICOM</h1>
-
-        <div class="meta-info">
-            <strong>Nombre del Paciente:</strong> {{ dicom_file.patient_name }}<br>
-            <strong>Fecha de Subida:</strong> {{ dicom_file.upload_date|date:"Y-m-d H:i" }}
-        </div>
-
-        <div class="mb-4 d-flex justify-content-center gap-3">
-            <a href="{% url 'dicomfile_edit' dicom_file.id %}" class="btn btn-warning fw-bold">
-                ✏️ Editar
-            </a>
-            <a href="{% url 'dicomfile_delete' dicom_file.id %}" class="btn btn-danger fw-bold">
-                🗑️ Eliminar
-            </a>
-            <a href="{% url 'dicom_search' %}" class="btn btn-outline-secondary fw-bold">
-                ← Volver al listado
-            </a>
-        </div>
-
-        <h5 class="mb-3 text-center">Tags Asociados:</h5>
-        <div class="table-responsive">
-            <table class="table table-hover dicom-table align-middle">
-                <thead>
-                    <tr>
-                        <th>Tag</th>
-                        <th>Descripción</th>
-                        <th>VR</th>
-                        <th>Valor</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for tag in dicom_file.tags.all %}
-                    <tr>
-                        <td>{{ tag.tag }}</td>
-                        <td>{{ tag.description }}</td>
-                        <td>{{ tag.vr }}</td>
-                        <td>{{ tag.value }}</td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="4" class="text-center text-muted">No hay tags asociados a este archivo DICOM.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<div class="container-fluid p-0" style="background-color: #E6F0FF; min-height: 100vh;">
+    <!-- Header Title -->
+    <div class="row mb-4 pt-4">
+        <div class="col-12 text-center">
+            <h1 style="color: #5B7CFA; font-weight: 800; font-size: 2.5rem; letter-spacing: 2px;">DICOM HUB</h1>
         </div>
     </div>
+
+    <!-- Main Card -->
+    <div class="row justify-content-center px-4">
+        <div class="col-12 col-xl-10">
+            <div class="card border-0 shadow-sm" style="border-radius: 20px; padding: 2rem;">
+                <div class="card-body p-0">
+
+                    <!-- Title -->
+                    <h2 class="mb-4" style="font-weight: 700; font-size: 2.2rem; color: #000;">
+                        Detalle del Archivo DICOM
+                    </h2>
+
+                    <!-- Info -->
+                    <div class="mb-4">
+                        <p class="mb-1" style="font-weight: 700; font-size: 1rem; color: #000;">
+                            Nombre del Paciente: <span style="font-weight: 400; color: #555;">{{ dicom_file.patient_name
+                                }}</span>
+                        </p>
+                        <p class="mb-0" style="font-weight: 700; font-size: 1rem; color: #000;">
+                            Fecha de Subida: <span style="font-weight: 400; color: #555;">{{
+                                dicom_file.upload_date|date:"Y-m-d H:i" }}</span>
+                        </p>
+                    </div>
+
+                    <!-- Buttons Toolbar -->
+                    <div class="d-flex flex-wrap gap-2 mb-5 align-items-center justify-content-center">
+                        <!-- Edit Button (Yellow) -->
+                        <a href="{% url 'dicomfile_edit' dicom_file.pk %}" class="btn"
+                            style="background-color: #FFC107; color: #000; font-weight: 700; border: none; border-radius: 6px; padding: 0.5rem 1.5rem;">
+                            <i class="fas fa-pencil-alt me-2"></i>Editar
+                        </a>
+
+                        <!-- Delete Button (Red) -->
+                        <a href="{% url 'dicomfile_delete' dicom_file.pk %}" class="btn"
+                            style="background-color: #DC3545; color: #fff; font-weight: 700; border: none; border-radius: 6px; padding: 0.5rem 1.5rem;">
+                            <i class="fas fa-trash-alt me-2"></i>Eliminar
+                        </a>
+
+                        <!-- Back Button (Outline) -->
+                        <a href="{% url 'participant_experiments' participant_id %}" class="btn btn-outline-secondary"
+                            style="border-radius: 6px; padding: 0.5rem 1.5rem; font-weight: 500;">
+                            ← Volver al listado
+                        </a>
+
+                        <!-- Image Button (Blue) -->
+                        <button class="btn"
+                            style="background-color: #1E6091; color: #fff; font-weight: 700; border: none; border-radius: 6px; padding: 0.5rem 2rem;">
+                            Imagen
+                        </button>
+                    </div>
+
+                    <!-- Tags Section -->
+                    <h4 class="text-center mb-4" style="font-weight: 700; font-size: 1.2rem; color: #000;">
+                        Tags Asociados:
+                    </h4>
+
+                    <!-- Tags Table -->
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead>
+                                <tr style="border-bottom: 1px solid #eee;">
+                                    <th scope="col" style="font-weight: 800; color: #000; width: 15%;">Tag</th>
+                                    <th scope="col" style="font-weight: 800; color: #000; width: 25%;">Descripción</th>
+                                    <th scope="col" style="font-weight: 800; color: #000; width: 10%;">VR</th>
+                                    <th scope="col" style="font-weight: 800; color: #000;">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tag in dicom_file.tags.all %}
+                                <tr style="border-bottom: 1px solid #f0f0f0;">
+                                    <td class="py-3" style="color: #555;">{{ tag.tag }}</td>
+                                    <td class="py-3" style="color: #555;">{{ tag.description }}</td>
+                                    <td class="py-3" style="color: #555;">{{ tag.vr }}</td>
+                                    <td class="py-3" style="color: #555;">{{ tag.value }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted">No hay tags asociados a este
+                                        archivo.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Custom overrides for this specific page */
+    .content-area {
+        background-color: #E6F0FF !important;
+        padding: 0 !important;
+    }
+
+    .table th {
+        border-top: none;
+    }
+
+    .table td {
+        border-top: none;
+    }
+</style>
 {% endblock %}

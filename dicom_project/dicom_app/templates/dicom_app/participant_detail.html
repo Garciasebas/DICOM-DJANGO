@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .detail-container {
+        padding: 40px;
+        background-color: #f8f9fa;
+        min-height: 100vh;
+    }
+
+    .breadcrumb {
+        margin-bottom: 20px;
+        color: #7f8c8d;
+    }
+
+    .breadcrumb a {
+        color: #3498db;
+        text-decoration: none;
+    }
+
+    .participant-header {
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 30px;
+    }
+
+    .files-section {
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .files-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin-top: 20px;
+    }
+
+    .files-table th {
+        text-align: left;
+        padding: 15px;
+        background: #f8f9fa;
+        color: #7f8c8d;
+        font-weight: 600;
+        border-bottom: 2px solid #e9ecef;
+    }
+
+    .files-table td {
+        padding: 15px;
+        border-bottom: 1px solid #e9ecef;
+        color: #2c3e50;
+    }
+
+    .btn-upload {
+        background: #3498db;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: 500;
+        float: right;
+    }
+</style>
+
+<div class="detail-container">
+    <div class="breadcrumb">
+        <a href="{% url 'dashboard' %}">Dashboard</a> /
+        <a href="{% url 'experiment_detail' participant.experiment.id %}">{{ participant.experiment.name }}</a> /
+        {{ participant.subject_id }}
+    </div>
+
+    <div class="participant-header">
+        <h1>{{ participant.subject_id }}</h1>
+        <p><strong>Detalles:</strong> {{ participant.details }}</p>
+    </div>
+
+    <div class="files-section">
+        <a href="#" class="btn-upload">Subir DICOM</a>
+        <h3>Archivos DICOM</h3>
+
+        <table class="files-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre Paciente (DICOM)</th>
+                    <th>Fecha Subida</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dicom in participant.dicom_files.all %}
+                <tr>
+                    <td>{{ dicom.id }}</td>
+                    <td>{{ dicom.patient_name }}</td>
+                    <td>{{ dicom.upload_date|date:"d/m/Y H:i" }}</td>
+                    <td>
+                        <a href="{% url 'dicomfile_detail' dicom.pk %}" class="btn-view">Ver</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" style="text-align: center; padding: 30px; color: #95a5a6;">
+                        No hay archivos DICOM asociados a este participante.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

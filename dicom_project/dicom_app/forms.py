@@ -1,4 +1,4 @@
-from django import forms
+﻿from django import forms
 from .models import DicomFile, DicomTag
 
 class DicomUploadForm(forms.Form):
@@ -13,3 +13,13 @@ class DicomTagForm(forms.ModelForm):
     class Meta:
         model = DicomTag
         fields = ['tag', 'description', 'vr', 'value']
+
+class ConsentNoteForm(forms.Form):
+    consent_file = forms.FileField(label='Seleccionar archivo')
+
+    def clean_consent_file(self):
+        file = self.cleaned_data.get('consent_file')
+        if file:
+            if not file.name.endswith(('.pdf', '.doc', '.docx')):
+                raise forms.ValidationError('Solo se permiten archivos PDF o Word.')
+        return file

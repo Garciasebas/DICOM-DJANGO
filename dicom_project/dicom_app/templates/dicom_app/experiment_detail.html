@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="content-card">
+    <div class="dashboard-header-top">
+        <div class="dashboard-brand">DICOM HUB</div>
+    </div>
+
+    <div class="form-header-custom">
+        <div>
+            <h2 class="form-title-left">Detalle del Experimentos</h2>
+            <p class="detail-meta-text"><strong>Fecha de creación:</strong> {{ experiment.created_at|date:"Y-m-d H:i" }}
+            </p>
+            <p class="detail-meta-text"><strong>Descripción:</strong></p>
+        </div>
+        <div class="form-actions-right">
+            <a href="{% url 'experiment_delete' experiment.pk %}" class="btn-delete-red">
+                <i class="fas fa-trash-can"></i> Eliminar
+            </a>
+            <a href="{% url 'dashboard' %}" class="btn-cancel-outline">
+                ← Volver al listado
+            </a>
+        </div>
+    </div>
+
+    <div class="description-textarea-box">
+        <div class="textarea-readonly">{{ experiment.description }}</div>
+    </div>
+
+    <h3 class="section-title-centered-large">Participantes</h3>
+    <div class="participants-table">
+        {% for participant in experiment.participants.all %}
+        <div class="participant-row-detail">
+            <span class="participant-name-bold">{{ participant.subject_id }}</span>
+            <div class="participant-links">
+                <a href="{% url 'upload_consent_note' participant.pk %}" class="link-blue">Subir nota de
+                    consentimiento</a>
+                <span class="separator"></span>
+                <a href="{% url 'upload_participant_dicom' participant.pk %}" class="link-blue">Subir DICOM</a>
+            </div>
+        </div>
+        {% empty %}
+        <p style="text-align: center; color: #95a5a6; padding: 2rem 0;">No hay participantes registrados.</p>
+        {% endfor %}
+    </div>
+
+    <h3 class="section-title-centered-large">Miembros del Equipo</h3>
+    <div class="team-simple-list">
+        {% for member in experiment.team_members.all %}
+        <div class="team-member-row">
+            <span class="member-role">{{ member.role }},</span> <span class="member-name">{{ member.name }}</span>
+        </div>
+        {% empty %}
+        <p style="text-align: center; color: #95a5a6;">No hay miembros del equipo registrados.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

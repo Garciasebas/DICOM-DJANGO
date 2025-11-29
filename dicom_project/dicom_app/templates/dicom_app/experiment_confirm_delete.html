@@ -14,8 +14,7 @@
         </p>
 
         <p class="delete-modal-filename">
-            "DICOM File for {{ object.patient_name }} uploaded on {{ object.upload_date|date:"Y-m-d
-            H:i:s.u"|add:"+00:00" }}"?
+            "{{ object.name }}"?
         </p>
 
         <form method="post" class="delete-modal-actions">
@@ -23,7 +22,7 @@
             <button type="submit" class="btn-delete-red">
                 <i class="fas fa-trash-can"></i> Eliminar
             </button>
-            <a href="{% url 'dicomfile_detail' object.pk %}" class="btn-cancel-outline">
+            <a href="{% url 'experiment_detail' object.pk %}" class="btn-cancel-outline">
                 Cancelar
             </a>
         </form>

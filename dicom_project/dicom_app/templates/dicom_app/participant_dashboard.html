@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid p-0" style="background-color: #E6F0FF; min-height: 100vh;">
+    <!-- Header Title -->
+    <div class="row mb-4 pt-4">
+        <div class="col-12 text-center">
+            <h1 style="color: #5B7CFA; font-weight: 800; font-size: 2.5rem; letter-spacing: 2px;">DICOM HUB</h1>
+        </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="row justify-content-center px-4">
+        <div class="col-12 col-xl-10">
+            <div class="card border-0 shadow-sm" style="border-radius: 20px; padding: 2rem;">
+                <div class="card-body p-0">
+                    <!-- Card Title -->
+                    <h2 class="mb-4" style="font-weight: 700; font-size: 2rem; color: #000;">
+                        Listado de <span style="font-weight: 700;">Participantes</span>
+                    </h2>
+
+                    <!-- Search Bar -->
+                    <form method="get" class="mb-5">
+                        <div class="d-flex gap-3 align-items-center">
+                            <div class="flex-grow-1 position-relative">
+                                <input type="text" name="q" class="form-control form-control-lg border-light bg-light"
+                                    placeholder="Buscar por Participantes" value="{{ request.GET.q|default:'' }}"
+                                    style="border-radius: 8px; font-size: 0.9rem; padding: 1rem; color: #999;">
+                            </div>
+                            <button type="submit" class="btn text-center" style="color: #4A90E2; min-width: 80px;">
+                                <i class="fas fa-search fa-lg mb-1"></i>
+                                <div style="font-size: 0.8rem; font-weight: 600;">Buscar</div>
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Table -->
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr style="border-bottom: 2px solid #eee;">
+                                    <th scope="col" class="pb-3" style="font-weight: 800; color: #000;">Nombre del
+                                        participante</th>
+                                    <th scope="col" class="pb-3" style="font-weight: 800; color: #000;">Última
+                                        participación</th>
+                                    <th scope="col" class="pb-3" style="font-weight: 800; color: #000;">Visualizar</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for participant in participants %}
+                                <tr style="border-bottom: 1px solid #f0f0f0;">
+                                    <td class="py-3" style="color: #555; font-weight: 500;">{{ participant.subject_id }}
+                                    </td>
+                                    <td class="py-3" style="color: #555;">2025-04-26 00:46</td>
+                                    <!-- Placeholder date as per image/mockup logic, or use real data if available -->
+                                    <td class="py-3">
+                                        <a href="{% url 'participant_experiments' participant.pk %}" class="btn p-0"
+                                            style="color: #999;">
+                                            <i class="fas fa-eye fa-lg"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="3" class="text-center py-4">No se encontraron participantes.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Custom overrides for this specific page */
+    .content-area {
+        background-color: #E6F0FF !important;
+        padding: 0 !important;
+    }
+
+    .form-control::placeholder {
+        color: #ccc;
+    }
+
+    .table th {
+        border-top: none;
+    }
+
+    .table td {
+        border-top: none;
+    }
+</style>
+{% endblock %}

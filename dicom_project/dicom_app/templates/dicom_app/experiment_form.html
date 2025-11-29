@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="content-card">
+    <div class="dashboard-header-top">
+    <div class="dashboard-brand">DICOM HUB</div>
+</div>
+    <div class="form-header-custom">
+        <h2 class="form-title-left">Nuevo Experimento</h2>
+        <div class="form-actions-right">
+            <button type="submit" form="experiment-form" class="btn-save-teal">Guardar</button>
+            <a href="{% url 'dashboard' %}" class="btn-cancel-outline">Cancelar</a>
+        </div>
+    </div>
+
+    <form id="experiment-form" method="post">
+        {% csrf_token %}
+
+        <div class="form-grid-two-column">
+            <div class="form-group-small">
+                <input type="text" name="name" class="input-custom" placeholder="Nombre del Experimento" required>
+            </div>
+            <div class="form-group-large">
+                <textarea name="description" class="textarea-custom" placeholder="Descripción"
+                    maxlength="300"></textarea>
+                <div class="char-count">0/300</div>
+            </div>
+        </div>
+
+        <div class="form-grid-two-column">
+            <div class="dynamic-section">
+                <h3 class="section-title-left">Participantes</h3>
+                <div class="dynamic-row-with-button">
+                    <input type="text" placeholder="Nombre y Apellido del Participante">
+                    <button type="button" class="btn-add-teal" onclick="addParticipant()">+</button>
+                </div>
+                <div id="participants-container"></div>
+            </div>
+
+            <div class="dynamic-section">
+                <h3 class="section-title-left">Miembros del Equipo</h3>
+                <div class="dynamic-row-with-button">
+                    <input type="text" placeholder="Rol, Nombre y Apellido">
+                    <button type="button" class="btn-add-teal" onclick="addTeamMember()">+</button>
+                </div>
+                <div id="team-container"></div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Character counter
+    document.querySelector('textarea[name="description"]').addEventListener('input', function () {
+        const charCount = this.value.length;
+        document.querySelector('.char-count').textContent = charCount + '/300';
+    });
+
+    // Add participant
+    function addParticipant() {
+        const container = document.getElementById('participants-container');
+        const newRow = document.createElement('div');
+        newRow.className = 'dynamic-row-connected';
+        newRow.innerHTML = `
+        <div class="connector-line-vertical"></div>
+        <input type="text" placeholder="Nombre y Apellido del Participante">
+    `;
+        container.appendChild(newRow);
+    }
+
+    // Add team member
+    function addTeamMember() {
+        const container = document.getElementById('team-container');
+        const newRow = document.createElement('div');
+        newRow.className = 'dynamic-row-connected';
+        newRow.innerHTML = `
+        <div class="connector-line-vertical"></div>
+        <input type="text" placeholder="Rol, Nombre y Apellido">
+    `;
+        container.appendChild(newRow);
+    }
+</script>
+{% endblock %}

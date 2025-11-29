@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-box">
+        <h2 class="login-title">Iniciar sesión</h2>
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <input type="text" name="username" class="form-control-custom" placeholder="Usuario" id="id_username"
+                    required autofocus>
+            </div>
+
+            <div class="form-group">
+                <input type="password" name="password" class="form-control-custom" placeholder="Contraseña"
+                    id="id_password" required>
+            </div>
+
+            {% if form.errors %}
+            <div class="error-message">
+                Credenciales inválidas.
+            </div>
+            {% endif %}
+
+            <button type="submit" class="btn-login">Ingresar</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

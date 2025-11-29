@@ -7,10 +7,39 @@ from .views import (
     DicomFileDeleteView,
     upload_dicom,
     export_dicom_to_bids,
-    main_menu
+    dashboard,
+    participant_dashboard,
+    ExperimentCreateView,
+    ExperimentDetailView,
+    ExperimentDeleteView,
+    ParticipantCreateView,
+    ParticipantDetailView,
+    ParticipantListView,
+    upload_consent_note,
+    upload_participant_dicom,
+    upload_success,
+    participant_experiments
 )
+
+from django.views.generic import RedirectView
+
 urlpatterns = [
-    path('', main_menu, name='main_menu'),
+    path('', RedirectView.as_view(pattern_name='dashboard', permanent=False), name='home'),
+    path('dashboard/', dashboard, name='dashboard'),
+    path('participant-dashboard/', participant_dashboard, name='participant_dashboard'),
+    path('experiment/new/', ExperimentCreateView.as_view(), name='experiment_create'),
+    path('experiment/<int:pk>/', ExperimentDetailView.as_view(), name='experiment_detail'),
+    path('experiment/<int:pk>/delete/', ExperimentDeleteView.as_view(), name='experiment_delete'),
+    path('experiment/<int:experiment_id>/participant/new/', ParticipantCreateView.as_view(), name='participant_create'),
+    path('participant/<int:pk>/', ParticipantDetailView.as_view(), name='participant_detail'),
+    path('participants/', ParticipantListView.as_view(), name='participant_list'),
+    path('participant/<int:participant_id>/experiments/', participant_experiments, name='participant_experiments'),
+    
+    # File upload URLs
+    path('participant/<int:participant_id>/upload-consent/', upload_consent_note, name='upload_consent_note'),
+    path('participant/<int:participant_id>/upload-dicom/', upload_participant_dicom, name='upload_participant_dicom'),
+    path('upload-success/<str:upload_type>/', upload_success, name='upload_success'),
+
     path('dicomfile_list/', DicomFileListView.as_view(), name='dicomfile_list'),
     path('<int:pk>/', DicomFileDetailView.as_view(), name='dicomfile_detail'),
     path('dicomfile/new/', DicomFileCreateView.as_view(), name='dicomfile_create'),

@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="content-card">
+    <div class="dashboard-header-top">
+        <div class="dashboard-brand">DICOM HUB</div>
+    </div>
+
+    <div class="card-header-custom">
+        <h1 class="card-title">Listado de Experimentos</h1>
+        <a href="{% url 'experiment_create' %}" class="btn-new-experiment">
+            + Nuevo Experimento
+        </a>
+    </div>
+
+    <div class="search-bar">
+        <input type="text" class="search-input" placeholder="Buscar por experimento">
+        <button class="search-icon-btn">
+            <i class="fas fa-search"></i>
+            <span>Buscar</span>
+        </button>
+    </div>
+
+    <table class="custom-table">
+        <thead>
+            <tr>
+                <th style="width: 40%;">Nombre del experimento</th>
+                <th style="width: 30%;">Fecha de creación</th>
+                <th style="text-align: center; width: 15%;">Visualizar</th>
+                <th style="text-align: right; width: 15%;">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for experiment in experiments %}
+            <tr>
+                <td>{{ experiment.name }}</td>
+                <td>{{ experiment.created_at|date:"Y-m-d H:i" }}</td>
+                <td style="text-align: center;">
+                    <a href="{% url 'experiment_detail' experiment.pk %}" class="icon-view">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                </td>
+                <td style="text-align: right;">
+                    <a href="{% url 'experiment_detail' experiment.pk %}" class="action-link">Exportación a BIDS</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" style="text-align: center; padding: 40px; color: #95a5a6;">
+                    No hay experimentos creados.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

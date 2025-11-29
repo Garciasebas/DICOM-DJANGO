@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="dashboard-header-top">
+    <div class="dashboard-brand">DICOM HUB</div>
+</div>
+
+<div class="content-card-centered">
+    <div class="success-header">
+        <h1 class="success-title">¡Nota de Consentimiento subido exitosamente!</h1>
+        <a href="{% url 'dashboard' %}" class="btn-cancel-outline">Volver al menú principal</a>
+    </div>
+</div>
+{% endblock %}

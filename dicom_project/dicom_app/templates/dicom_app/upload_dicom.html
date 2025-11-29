@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="content-card-centered">
+    <div class="dashboard-header-top">
+        <div class="dashboard-brand">DICOM HUB</div>
+    </div>
+    <div class="form-header-custom">
+        <h2 class="form-title-left">Subir nuevo DICOM</h2>
+        <div class="form-actions-right">
+            <a href="{% url 'experiment_detail' participant.experiment.pk %}" class="btn-cancel-outline">Volver</a>
+        </div>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="upload-form-centered">
+        {% csrf_token %}
+        <div class="file-input-container">
+            <label for="dicom_files">Dicom file</label>
+            <input type="file" name="dicom_files" id="dicom_files" accept=".dcm" multiple required
+                class="file-input-custom" onchange="displayFileNames(this)">
+            <div class="file-name-display" id="file-names-display" style="display: none;"></div>
+        </div>
+
+        <div class="upload-button-container">
+            <button type="submit" class="btn-save-teal">Subir DICOM</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    function displayFileNames(input) {
+        const display = document.getElementById('file-names-display');
+        if (input.files && input.files.length > 0) {
+            const fileNames = Array.from(input.files).map(file => file.name).join('\n');
+            display.textContent = fileNames;
+            display.style.display = 'block';
+        } else {
+            display.style.display = 'none';
+        }
+    }
+</script>
+{% endblock %}
