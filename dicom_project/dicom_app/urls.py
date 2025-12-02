@@ -22,9 +22,12 @@ from .views import (
 )
 
 from django.views.generic import RedirectView
+from django.contrib.auth import views as auth_views
 
 urlpatterns = [
     path('', RedirectView.as_view(pattern_name='dashboard', permanent=False), name='home'),
+    path('login/', auth_views.LoginView.as_view(), name='login'),
+    path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('dashboard/', dashboard, name='dashboard'),
     path('participant-dashboard/', participant_dashboard, name='participant_dashboard'),
     path('experiment/new/', ExperimentCreateView.as_view(), name='experiment_create'),
@@ -32,7 +35,7 @@ urlpatterns = [
     path('experiment/<int:pk>/delete/', ExperimentDeleteView.as_view(), name='experiment_delete'),
     path('experiment/<int:experiment_id>/participant/new/', ParticipantCreateView.as_view(), name='participant_create'),
     path('participant/<int:pk>/', ParticipantDetailView.as_view(), name='participant_detail'),
-    path('participants/', ParticipantListView.as_view(), name='participant_list'),
+    path('participants/', participant_dashboard, name='participant_list'),
     path('participant/<int:participant_id>/experiments/', participant_experiments, name='participant_experiments'),
     
     # File upload URLs

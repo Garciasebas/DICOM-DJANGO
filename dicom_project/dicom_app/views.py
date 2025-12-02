@@ -5,6 +5,7 @@ from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.http import FileResponse, Http404, HttpResponse
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 import os
 import traceback
 import shutil
@@ -72,6 +73,7 @@ def anonymize_dicom(ds):
     return ds
 
 
+@login_required
 def upload_dicom(request):
     if request.method == 'POST':
         form = DicomUploadForm(request.POST, request.FILES)
@@ -125,7 +127,7 @@ def upload_dicom(request):
 
     return render(request, 'upload.html', {'form': form})
 
-class DicomFileListView(ListView):
+class DicomFileListView(LoginRequiredMixin, ListView):
     model = DicomFile
     template_name = 'dicomfile_list.html'  # Nombre de tu plantilla
     context_object_name = 'dicom_files'
@@ -138,7 +140,7 @@ class DicomFileListView(ListView):
             queryset = queryset.filter(Q(patient_name__icontains=query))
         return queryset
 
-class DicomFileDetailView(DetailView):
+class DicomFileDetailView(LoginRequiredMixin, DetailView):
     model = DicomFile
     template_name = 'dicomfile_detail.html'  # Plantilla que mostrarás
     context_object_name = 'dicom_file'  # Nombre del contexto en la plantilla
@@ -150,13 +152,13 @@ class DicomFileDetailView(DetailView):
             context['participant_id'] = self.object.participant.id
         return context
 
-class DicomFileCreateView(CreateView):
+class DicomFileCreateView(LoginRequiredMixin, CreateView):
     model = DicomFile
     form_class = DicomFileForm
     template_name = 'dicomfile_form.html'
     success_url = reverse_lazy('dicomfile_list')
 
-class DicomFileUpdateView(UpdateView):
+class DicomFileUpdateView(LoginRequiredMixin, UpdateView):
     model = DicomFile
     form_class = DicomFileForm
     template_name = 'dicomfile_form.html'
@@ -164,7 +166,7 @@ class DicomFileUpdateView(UpdateView):
     def get_success_url(self):
         return reverse_lazy('dicomfile_detail', kwargs={'pk': self.object.pk})
 
-class DicomFileDeleteView(DeleteView):
+class DicomFileDeleteView(LoginRequiredMixin, DeleteView):
     model = DicomFile
     template_name = 'dicomfile_confirm_delete.html'
     
@@ -187,6 +189,7 @@ def convert_single_dicom_to_nifti(dicom_path, output_path):
     nii = nib.Nifti1Image(image, affine)
     nib.save(nii, output_path)
 
+@login_required
 def export_dicom_to_bids(request, pk):
     dicom_instance = get_object_or_404(DicomFile, pk=pk)
     dicom_path = dicom_instance.file
@@ -291,23 +294,23 @@ def participant_dashboard(request):
         
     return render(request, 'dicom_app/participant_dashboard.html', {'participants': participants})
 
-class ExperimentCreateView(CreateView):
+class ExperimentCreateView(LoginRequiredMixin, CreateView):
     model = Experiment
     fields = ['name', 'description', 'status']
     template_name = 'dicom_app/experiment_form.html'
     success_url = reverse_lazy('dashboard')
 
-class ExperimentDetailView(DetailView):
+class ExperimentDetailView(LoginRequiredMixin, DetailView):
     model = Experiment
     template_name = 'dicom_app/experiment_detail.html'
     context_object_name = 'experiment'
 
-class ExperimentDeleteView(DeleteView):
+class ExperimentDeleteView(LoginRequiredMixin, DeleteView):
     model = Experiment
     template_name = 'dicom_app/experiment_confirm_delete.html'
     success_url = reverse_lazy('dashboard')
 
-class ParticipantCreateView(CreateView):
+class ParticipantCreateView(LoginRequiredMixin, CreateView):
     model = Participant
     fields = ['subject_id', 'details', 'experiment']
     template_name = 'dicom_app/participant_form.html'
@@ -315,12 +318,12 @@ class ParticipantCreateView(CreateView):
     def get_success_url(self):
         return reverse_lazy('experiment_detail', kwargs={'pk': self.object.experiment.pk})
 
-class ParticipantDetailView(DetailView):
+class ParticipantDetailView(LoginRequiredMixin, DetailView):
     model = Participant
     template_name = 'dicom_app/participant_detail.html'
     context_object_name = 'participant'
 
-class ParticipantListView(ListView):
+class ParticipantListView(LoginRequiredMixin, ListView):
     model = Participant
     template_name = 'dicom_app/participant_list.html'
     context_object_name = 'participants'
