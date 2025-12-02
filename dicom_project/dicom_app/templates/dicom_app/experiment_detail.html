@@ -46,9 +46,9 @@
 
     <h3 class="section-title-centered-large">Miembros del Equipo</h3>
     <div class="team-simple-list">
-        {% for member in experiment.team_members.all %}
+        {% for member in experiment.members.all %}
         <div class="team-member-row">
-            <span class="member-role">{{ member.role }},</span> <span class="member-name">{{ member.name }}</span>
+            <span class="member-role">{{ member.role }},</span> <span class="member-name">{{ member.first_name }} {{ member.last_name }}</span>
         </div>
         {% empty %}
         <p style="text-align: center; color: #95a5a6;">No hay miembros del equipo registrados.</p>

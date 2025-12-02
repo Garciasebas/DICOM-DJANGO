@@ -11,12 +11,26 @@ class Experiment(models.Model):
         return self.name
 
 class Participant(models.Model):
-    experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE, related_name='participants')
-    subject_id = models.CharField(max_length=100)
+    subject_id = models.CharField(max_length=100, unique=True)
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=20, blank=True)
     details = models.TextField(blank=True)
+    experiments = models.ManyToManyField(Experiment, related_name='participants', blank=True)
 
     def __str__(self):
-        return f"{self.subject_id} ({self.experiment.name})"
+        return f"{self.first_name} {self.last_name} ({self.subject_id})"
+
+class Member(models.Model):
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    role = models.CharField(max_length=100)
+    email = models.EmailField(blank=True)
+    experiments = models.ManyToManyField(Experiment, related_name='members', blank=True)
+
+    def __str__(self):
+        return f"{self.first_name} {self.last_name} - {self.role}"
 
 class TeamMember(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)

@@ -15,7 +15,7 @@ from dicom2nifti import convert_directory
 import json
 import zipfile
 from .models import DicomFile, DicomTag, Experiment, Participant
-from .forms import DicomFileForm, DicomTagForm, DicomUploadForm
+from .forms import DicomFileForm, DicomTagForm, DicomUploadForm, ExperimentForm
 import numpy as np
 import nibabel as nib
 import uuid
@@ -296,9 +296,25 @@ def participant_dashboard(request):
 
 class ExperimentCreateView(LoginRequiredMixin, CreateView):
     model = Experiment
-    fields = ['name', 'description', 'status']
+    form_class = ExperimentForm
     template_name = 'dicom_app/experiment_form.html'
     success_url = reverse_lazy('dashboard')
+    
+    def form_valid(self, form):
+        # Django automatically handles ManyToMany relationships when using ModelForm
+        # The participants and members will be saved automatically
+        response = super().form_valid(form)
+        
+        # Debug output
+        experiment = self.object
+        print(f"Experiment created: {experiment.name}")
+        print(f"Participants count: {experiment.participants.count()}")
+        print(f"Members count: {experiment.members.count()}")
+        
+        return response
+
+
+
 
 class ExperimentDetailView(LoginRequiredMixin, DetailView):
     model = Experiment

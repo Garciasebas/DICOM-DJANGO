@@ -2,10 +2,176 @@
 
 {% block content %}
 
+<style>
+    /* Custom Multi-Select Styles */
+    .custom-multiselect {
+        position: relative;
+        width: 100%;
+        margin-bottom: 1rem;
+    }
+
+    .multiselect-container {
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        background: white;
+        padding: 8px;
+        min-height: 42px;
+        cursor: text;
+        transition: all 0.2s;
+    }
+
+    .multiselect-container:hover {
+        border-color: #3b82f6;
+    }
+
+    .multiselect-container.active {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .multiselect-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 4px;
+    }
+
+    .multiselect-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #3b82f6;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        animation: tagAppear 0.2s ease;
+    }
+
+    @keyframes tagAppear {
+        from {
+            opacity: 0;
+            transform: scale(0.8);
+        }
+
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    .multiselect-tag-remove {
+        cursor: pointer;
+        font-weight: bold;
+        opacity: 0.8;
+        transition: opacity 0.2s;
+    }
+
+    .multiselect-tag-remove:hover {
+        opacity: 1;
+    }
+
+    .multiselect-search {
+        border: none;
+        outline: none;
+        width: 100%;
+        padding: 4px;
+        font-size: 14px;
+        font-family: inherit;
+    }
+
+    .multiselect-search::placeholder {
+        color: #9ca3af;
+    }
+
+    .multiselect-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        margin-top: 4px;
+        background: white;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        max-height: 250px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+        animation: dropdownAppear 0.2s ease;
+    }
+
+    @keyframes dropdownAppear {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .multiselect-dropdown.active {
+        display: block;
+    }
+
+    .multiselect-option {
+        padding: 10px 12px;
+        cursor: pointer;
+        transition: background 0.15s;
+        font-size: 14px;
+        border-bottom: 1px solid #f3f4f6;
+    }
+
+    .multiselect-option:last-child {
+        border-bottom: none;
+    }
+
+    .multiselect-option:hover {
+        background: #f3f4f6;
+    }
+
+    .multiselect-option.selected {
+        background: #eff6ff;
+        color: #3b82f6;
+        font-weight: 500;
+    }
+
+    .multiselect-option.selected::before {
+        content: "✓ ";
+        font-weight: bold;
+    }
+
+    .multiselect-option.hidden {
+        display: none;
+    }
+
+    .multiselect-dropdown::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .multiselect-dropdown::-webkit-scrollbar-track {
+        background: #f3f4f6;
+        border-radius: 4px;
+    }
+
+    .multiselect-dropdown::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 4px;
+    }
+
+    .multiselect-dropdown::-webkit-scrollbar-thumb:hover {
+        background: #9ca3af;
+    }
+</style>
+
 <div class="content-card">
     <div class="dashboard-header-top">
-    <div class="dashboard-brand">DICOM HUB</div>
-</div>
+        <div class="dashboard-brand">DICOM HUB</div>
+    </div>
     <div class="form-header-custom">
         <h2 class="form-title-left">Nuevo Experimento</h2>
         <div class="form-actions-right">
@@ -19,11 +185,10 @@
 
         <div class="form-grid-two-column">
             <div class="form-group-small">
-                <input type="text" name="name" class="input-custom" placeholder="Nombre del Experimento" required>
+                {{ form.name }}
             </div>
             <div class="form-group-large">
-                <textarea name="description" class="textarea-custom" placeholder="Descripción"
-                    maxlength="300"></textarea>
+                {{ form.description }}
                 <div class="char-count">0/300</div>
             </div>
         </div>
@@ -31,54 +196,191 @@
         <div class="form-grid-two-column">
             <div class="dynamic-section">
                 <h3 class="section-title-left">Participantes</h3>
-                <div class="dynamic-row-with-button">
-                    <input type="text" placeholder="Nombre y Apellido del Participante">
-                    <button type="button" class="btn-add-teal" onclick="addParticipant()">+</button>
+                <div class="custom-multiselect" id="participants-multiselect">
+                    <div class="multiselect-container">
+                        <div class="multiselect-tags" id="participants-tags"></div>
+                        <input type="text" class="multiselect-search" placeholder="Buscar participantes...">
+                    </div>
+                    <div class="multiselect-dropdown" id="participants-dropdown"></div>
+                    {{ form.participants }}
                 </div>
-                <div id="participants-container"></div>
             </div>
 
             <div class="dynamic-section">
                 <h3 class="section-title-left">Miembros del Equipo</h3>
-                <div class="dynamic-row-with-button">
-                    <input type="text" placeholder="Rol, Nombre y Apellido">
-                    <button type="button" class="btn-add-teal" onclick="addTeamMember()">+</button>
+                <div class="custom-multiselect" id="members-multiselect">
+                    <div class="multiselect-container">
+                        <div class="multiselect-tags" id="members-tags"></div>
+                        <input type="text" class="multiselect-search" placeholder="Buscar miembros...">
+                    </div>
+                    <div class="multiselect-dropdown" id="members-dropdown"></div>
+                    {{ form.members }}
                 </div>
-                <div id="team-container"></div>
             </div>
         </div>
     </form>
 </div>
 
 <script>
-    // Character counter
-    document.querySelector('textarea[name="description"]').addEventListener('input', function () {
-        const charCount = this.value.length;
-        document.querySelector('.char-count').textContent = charCount + '/300';
+    // Custom Multi-Select Component
+    class CustomMultiSelect {
+        constructor(containerId, selectElement) {
+            this.container = document.getElementById(containerId);
+            this.select = selectElement;
+            this.searchInput = this.container.querySelector('.multiselect-search');
+            this.dropdown = this.container.querySelector('.multiselect-dropdown');
+            this.tagsContainer = this.container.querySelector('.multiselect-tags');
+            this.multiselectContainer = this.container.querySelector('.multiselect-container');
+            this.selectedValues = new Set();
+
+            this.init();
+        }
+
+        init() {
+            // Hide original select
+            this.select.style.display = 'none';
+
+            // Build dropdown options
+            this.buildDropdown();
+
+            // Event listeners
+            this.searchInput.addEventListener('input', () => this.filterOptions());
+            this.searchInput.addEventListener('focus', () => this.openDropdown());
+            this.multiselectContainer.addEventListener('click', () => this.searchInput.focus());
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!this.container.contains(e.target)) {
+                    this.closeDropdown();
+                }
+            });
+        }
+
+        buildDropdown() {
+            this.dropdown.innerHTML = '';
+            const options = this.select.querySelectorAll('option');
+
+            options.forEach(option => {
+                const div = document.createElement('div');
+                div.className = 'multiselect-option';
+                div.textContent = option.textContent;
+                div.dataset.value = option.value;
+
+                div.addEventListener('click', () => this.toggleOption(option.value, option.textContent));
+
+                this.dropdown.appendChild(div);
+            });
+        }
+
+        toggleOption(value, text) {
+            if (this.selectedValues.has(value)) {
+                this.removeValue(value);
+            } else {
+                this.addValue(value, text);
+            }
+            this.updateSelect();
+            this.updateDropdownState();
+        }
+
+        addValue(value, text) {
+            this.selectedValues.add(value);
+
+            const tag = document.createElement('div');
+            tag.className = 'multiselect-tag';
+            tag.dataset.value = value;
+            tag.innerHTML = `
+            <span>${text}</span>
+            <span class="multiselect-tag-remove">×</span>
+        `;
+
+            tag.querySelector('.multiselect-tag-remove').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.removeValue(value);
+                this.updateSelect();
+                this.updateDropdownState();
+            });
+
+            this.tagsContainer.appendChild(tag);
+        }
+
+        removeValue(value) {
+            this.selectedValues.delete(value);
+            const tag = this.tagsContainer.querySelector(`[data-value="${value}"]`);
+            if (tag) {
+                tag.remove();
+            }
+        }
+
+        updateSelect() {
+            const options = this.select.querySelectorAll('option');
+            options.forEach(option => {
+                option.selected = this.selectedValues.has(option.value);
+            });
+        }
+
+        updateDropdownState() {
+            const options = this.dropdown.querySelectorAll('.multiselect-option');
+            options.forEach(option => {
+                if (this.selectedValues.has(option.dataset.value)) {
+                    option.classList.add('selected');
+                } else {
+                    option.classList.remove('selected');
+                }
+            });
+        }
+
+        filterOptions() {
+            const searchTerm = this.searchInput.value.toLowerCase();
+            const options = this.dropdown.querySelectorAll('.multiselect-option');
+
+            options.forEach(option => {
+                const text = option.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    option.classList.remove('hidden');
+                } else {
+                    option.classList.add('hidden');
+                }
+            });
+        }
+
+        openDropdown() {
+            this.dropdown.classList.add('active');
+            this.multiselectContainer.classList.add('active');
+        }
+
+        closeDropdown() {
+            this.dropdown.classList.remove('active');
+            this.multiselectContainer.classList.remove('active');
+            this.searchInput.value = '';
+            this.filterOptions();
+        }
+    }
+
+    // Initialize on DOM ready
+    document.addEventListener('DOMContentLoaded', function () {
+        // Character counter
+        const descriptionField = document.querySelector('textarea[name="description"]');
+        if (descriptionField) {
+            descriptionField.addEventListener('input', function () {
+                const charCount = this.value.length;
+                const counter = document.querySelector('.char-count');
+                if (counter) {
+                    counter.textContent = charCount + '/300';
+                }
+            });
+        }
+
+        // Initialize custom multi-selects
+        const participantsSelect = document.querySelector('select[name="participants"]');
+        const membersSelect = document.querySelector('select[name="members"]');
+
+        if (participantsSelect) {
+            new CustomMultiSelect('participants-multiselect', participantsSelect);
+        }
+
+        if (membersSelect) {
+            new CustomMultiSelect('members-multiselect', membersSelect);
+        }
     });
-
-    // Add participant
-    function addParticipant() {
-        const container = document.getElementById('participants-container');
-        const newRow = document.createElement('div');
-        newRow.className = 'dynamic-row-connected';
-        newRow.innerHTML = `
-        <div class="connector-line-vertical"></div>
-        <input type="text" placeholder="Nombre y Apellido del Participante">
-    `;
-        container.appendChild(newRow);
-    }
-
-    // Add team member
-    function addTeamMember() {
-        const container = document.getElementById('team-container');
-        const newRow = document.createElement('div');
-        newRow.className = 'dynamic-row-connected';
-        newRow.innerHTML = `
-        <div class="connector-line-vertical"></div>
-        <input type="text" placeholder="Rol, Nombre y Apellido">
-    `;
-        container.appendChild(newRow);
-    }
 </script>
 {% endblock %}
