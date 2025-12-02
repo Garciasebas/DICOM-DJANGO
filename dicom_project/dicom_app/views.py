@@ -14,8 +14,9 @@ from pathlib import Path
 from dicom2nifti import convert_directory
 import json
 import zipfile
-from .models import DicomFile, DicomTag, Experiment, Participant
+from .models import DicomFile, DicomTag, Experiment, Participant, ConsentFile
 from .forms import DicomFileForm, DicomTagForm, DicomUploadForm, ExperimentForm
+import uuid
 import numpy as np
 import nibabel as nib
 import uuid
@@ -192,7 +193,7 @@ def convert_single_dicom_to_nifti(dicom_path, output_path):
 @login_required
 def export_dicom_to_bids(request, pk):
     dicom_instance = get_object_or_404(DicomFile, pk=pk)
-    dicom_path = dicom_instance.file
+    dicom_path = dicom_instance.file.path
 
     if not os.path.exists(dicom_path):
         raise Http404("Archivo DICOM no encontrado")
@@ -260,6 +261,174 @@ def export_dicom_to_bids(request, pk):
 
     return FileResponse(open(zip_path, 'rb'), as_attachment=True, filename=f"{subject_id}_bids.zip")
 
+@login_required
+def export_experiment_to_bids(request, experiment_id):
+    """
+    Exporta todos los archivos DICOM de un experimento a formato BIDS.
+    Genera una estructura BIDS completa con todos los participantes.
+    """
+    experiment = get_object_or_404(Experiment, pk=experiment_id)
+    
+    # Crear directorio temporal para la estructura BIDS
+    temp_dir = tempfile.mkdtemp()
+    bids_root = Path(temp_dir) / "my_dataset"
+    bids_root.mkdir(parents=True, exist_ok=True)
+    
+    # Obtener todos los participantes del experimento
+    participants = experiment.participants.all()
+    
+    if not participants.exists():
+        return HttpResponse("No hay participantes asociados a este experimento.", status=404)
+    
+    # Crear archivo participants.tsv
+    participants_tsv_path = bids_root / "participants.tsv"
+    with open(participants_tsv_path, 'w') as tsv_file:
+        tsv_file.write("participant_id\tage\tsex\tgroup\n")
+        for participant in participants:
+            subject_id = f"sub-{participant.subject_id.lower()}"
+            tsv_file.write(f"{subject_id}\tNA\tNA\tcontrol\n")
+    
+    # Procesar cada participante
+    for participant in participants:
+        subject_id = f"sub-{participant.subject_id.lower()}"
+        subject_dir = bids_root / subject_id
+        
+        # Crear carpetas anat, func, dwi para cada participante
+        anat_dir = subject_dir / "anat"
+        func_dir = subject_dir / "func"
+        dwi_dir = subject_dir / "dwi"
+        
+        anat_dir.mkdir(parents=True, exist_ok=True)
+        func_dir.mkdir(parents=True, exist_ok=True)
+        dwi_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Obtener todos los archivos DICOM del participante en este experimento
+        dicom_files = DicomFile.objects.filter(
+            participant=participant,
+            experiment=experiment
+        )
+        
+        # Procesar cada archivo DICOM
+        for dicom_file in dicom_files:
+            try:
+                dicom_path = dicom_file.file.path
+                
+                if not os.path.exists(dicom_path):
+                    print(f"⚠️ Archivo DICOM no encontrado: {dicom_path}")
+                    continue
+                
+                # Clasificar el tipo de imagen basándose en el nombre del archivo o metadatos
+                filename_lower = dicom_file.original_filename.lower() if dicom_file.original_filename else ""
+                
+                if "t1" in filename_lower or "anat" in filename_lower:
+                    output_dir = anat_dir
+                    output_basename = f"{subject_id}_T1w"
+                elif "bold" in filename_lower or "func" in filename_lower or "rest" in filename_lower:
+                    output_dir = func_dir
+                    output_basename = f"{subject_id}_task-rest_bold"
+                elif "dwi" in filename_lower or "dti" in filename_lower:
+                    output_dir = dwi_dir
+                    output_basename = f"{subject_id}_dwi"
+                else:
+                    # Por defecto, asumir anat
+                    output_dir = anat_dir
+                    output_basename = f"{subject_id}_T1w"
+                
+                output_nifti = output_dir / f"{output_basename}.nii.gz"
+                
+                # Convertir DICOM a NIfTI
+                try:
+                    # Intentar conversión con dicom2nifti
+                    temp_dicom_dir = tempfile.mkdtemp()
+                    temp_dicom_path = os.path.join(temp_dicom_dir, 'image.dcm')
+                    shutil.copyfile(dicom_path, temp_dicom_path)
+                    
+                    # Intentar convertir
+                    nii_files = list(output_dir.glob("*.nii.gz"))
+                    initial_count = len(nii_files)
+                    
+                    try:
+                        convert_directory(temp_dicom_dir, output_dir, compression=True)
+                        nii_files = list(output_dir.glob("*.nii.gz"))
+                        
+                        # Si se generó un archivo, renombrarlo
+                        if len(nii_files) > initial_count:
+                            new_file = nii_files[-1]
+                            new_file.rename(output_nifti)
+                    except:
+                        # Si falla, usar método alternativo
+                        convert_single_dicom_to_nifti(dicom_path, output_nifti)
+                    
+                    # Limpiar directorio temporal
+                    shutil.rmtree(temp_dicom_dir, ignore_errors=True)
+                    
+                except Exception as e:
+                    print(f"⚠️ Error convirtiendo {dicom_file.original_filename}: {str(e)}")
+                    continue
+                
+                # Crear archivo JSON sidecar
+                json_path = output_dir / f"{output_basename}.json"
+                metadata = {
+                    "Modality": "MRI",
+                    "Manufacturer": "Unknown",
+                    "PatientID": participant.subject_id,
+                    "InstitutionName": "Anonymous Hospital"
+                }
+                
+                # Añadir metadatos específicos según el tipo
+                if "bold" in output_basename:
+                    metadata["TaskName"] = "rest"
+                    metadata["RepetitionTime"] = 2.0
+                
+                with open(json_path, 'w') as jf:
+                    json.dump(metadata, jf, indent=4)
+                
+                # Para archivos DWI, crear archivos .bval y .bvec (vacíos por ahora)
+                if "dwi" in output_basename:
+                    bval_path = output_dir / f"{output_basename}.bval"
+                    bvec_path = output_dir / f"{output_basename}.bvec"
+                    
+                    with open(bval_path, 'w') as f:
+                        f.write("0\n")
+                    
+                    with open(bvec_path, 'w') as f:
+                        f.write("0 0 0\n")
+                
+            except Exception as e:
+                print(f"⚠️ Error procesando archivo DICOM {dicom_file.id}: {str(e)}")
+                traceback.print_exc()
+                continue
+    
+    # Crear archivo dataset_description.json
+    dataset_description = {
+        "Name": f"BIDS Dataset - {experiment.name}",
+        "BIDSVersion": "1.8.0",
+        "DatasetType": "raw"
+    }
+    
+    with open(bids_root / "dataset_description.json", 'w') as f:
+        json.dump(dataset_description, f, indent=4)
+    
+    # Comprimir todo en un ZIP
+    zip_path = tempfile.NamedTemporaryFile(delete=False, suffix=".zip").name
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, dirs, files in os.walk(bids_root):
+            for file in files:
+                full_path = os.path.join(root, file)
+                arcname = os.path.relpath(full_path, temp_dir)
+                zipf.write(full_path, arcname=arcname)
+    
+    # Limpiar directorio temporal
+    shutil.rmtree(temp_dir, ignore_errors=True)
+    
+    # Retornar el archivo ZIP
+    experiment_name_safe = experiment.name.replace(" ", "_").lower()
+    return FileResponse(
+        open(zip_path, 'rb'), 
+        as_attachment=True, 
+        filename=f"{experiment_name_safe}_bids.zip"
+    )
+
 def zip_bids_folder(bids_dir):
     zip_path = bids_dir + '.zip'
     with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
@@ -271,6 +440,12 @@ def zip_bids_folder(bids_dir):
 
 def main_menu(request):
     return render(request, 'main_menu.html')
+
+@login_required
+def experiment_success(request):
+    """Vista de éxito después de crear un experimento"""
+    return render(request, 'dicom_app/experiment_success.html')
+
 # Experiment and Participant Views
 @login_required
 def dashboard(request):
@@ -298,7 +473,7 @@ class ExperimentCreateView(LoginRequiredMixin, CreateView):
     model = Experiment
     form_class = ExperimentForm
     template_name = 'dicom_app/experiment_form.html'
-    success_url = reverse_lazy('dashboard')
+    success_url = reverse_lazy('experiment_success')
     
     def form_valid(self, form):
         # Django automatically handles ManyToMany relationships when using ModelForm
@@ -346,54 +521,62 @@ class ParticipantListView(LoginRequiredMixin, ListView):
 
 # New views for file uploads
 @login_required
-def upload_consent_note(request, participant_id):
+def upload_consent_note(request, experiment_id, participant_id):
     """Vista para subir nota de consentimiento de un participante"""
+    experiment = get_object_or_404(Experiment, pk=experiment_id)
     participant = get_object_or_404(Participant, pk=participant_id)
     
     if request.method == 'POST':
         if 'consent_file' in request.FILES:
             file = request.FILES['consent_file']
-            # TODO: Guardar archivo de consentimiento
-            # participant.consent_note = file
-            # participant.save()
-            return redirect('upload_success', upload_type='consent')
+            
+            # Create ConsentFile record
+            consent_file = ConsentFile.objects.create(
+                participant=participant,
+                experiment=experiment,
+                file=file,
+                original_filename=file.name,
+                file_size=file.size
+            )
+            
+            return render(request, 'dicom_app/upload_success_consent.html', {
+                'experiment': experiment,
+                'participant': participant
+            })
     
     return render(request, 'dicom_app/upload_consent_note.html', {
-        'participant': participant
+        'participant': participant,
+        'experiment': experiment
     })
 
 @login_required
-def upload_participant_dicom(request, participant_id):
+def upload_participant_dicom(request, experiment_id, participant_id):
     """Vista para subir archivos DICOM de un participante"""
+    experiment = get_object_or_404(Experiment, pk=experiment_id)
     participant = get_object_or_404(Participant, pk=participant_id)
     
     if request.method == 'POST':
-        if 'dicom_files' in request.FILES:
-            files = request.FILES.getlist('dicom_files')
-            # Procesar múltiples archivos DICOM
-            for dicom_file in files:
-                ds = pydicom.dcmread(dicom_file)
-                ds = anonymize_dicom(ds)
-                
-                # Generar nombre único y guardar
-                pacient_code = participant.subject_id
-                save_dir = Path(f"media/dicoms/{participant.experiment.id}/{participant.id}/")
-                save_dir.mkdir(parents=True, exist_ok=True)
-                filename = f"{pacient_code}_{uuid.uuid4().hex[:6]}.dcm"
-                full_path = save_dir / filename
-                
-                ds.save_as(str(full_path))
-                
-                # Crear instancia DicomFile
-                DicomFile.objects.create(
-                    patient_name=pacient_code,
-                    file=str(full_path)
-                )
+        if 'dicom_file' in request.FILES:
+            file = request.FILES['dicom_file']
             
-            return redirect('upload_success', upload_type='dicom')
+            # Create DicomFile record
+            dicom_file = DicomFile.objects.create(
+                participant=participant,
+                experiment=experiment,
+                patient_name=participant.subject_id,
+                file=file,
+                original_filename=file.name,
+                file_size=file.size
+            )
+            
+            return render(request, 'dicom_app/upload_success_dicom.html', {
+                'experiment': experiment,
+                'participant': participant
+            })
     
     return render(request, 'dicom_app/upload_dicom.html', {
-        'participant': participant
+        'participant': participant,
+        'experiment': experiment
     })
 
 @login_required

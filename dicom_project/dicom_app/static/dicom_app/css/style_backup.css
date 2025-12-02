@@ -935,7 +935,7 @@ body:has(.sidebar) .content-area {
 }
 
 .content-card-centered .dashboard-header-top {
-    margin: -3rem -3rem 2rem -3rem;
+    margin: -3rem -3rem 0.5rem -3rem;
     border-radius: 20px 20px 0 0;
 }
 

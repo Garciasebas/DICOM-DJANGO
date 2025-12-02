@@ -741,61 +741,6 @@ body:has(.sidebar) .content-area {
     cursor: pointer;
     margin-right: 1rem;
 }
-
-.file-input-custom::-webkit-file-upload-button:hover {
-    background: #b0b5ba;
-}
-
-.upload-button-container {
-    text-align: center;
-    margin-top: 2rem;
-}
-
-/* ===== CENTERED UPLOAD CARDS ===== */
-.content-card-centered {
-    background: white;
-    border-radius: 20px;
-    padding: 3rem;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-    margin: 2rem auto;
-    max-width: 700px;
-    width: 90%;
-}
-
-.content-card-centered .dashboard-header-top {
-    margin: -3rem -3rem 2rem -3rem;
-    border-radius: 20px 20px 0 0;
-}
-
-.upload-form-centered {
-    max-width: 100%;
-}
-
-.file-name-display {
-    margin-top: 0.5rem;
-    padding: 0.75rem 1rem;
-    background: #f9fafb;
-    border: 1px solid var(--border-gray);
-    border-radius: 8px;
-    font-size: 0.9rem;
-    color: var(--text-dark);
-    white-space: pre-line;
-    font-family: monospace;
-}
-
-/* ===== DELETE CONFIRMATION MODAL ===== */
-.delete-modal-container {
-    min-height: calc(100vh - 200px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-}
-
-.delete-modal {
-    background: white;
-    border-radius: 15px;
-    padding: 3rem 2rem;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     max-width: 500px;
     width: 90%;

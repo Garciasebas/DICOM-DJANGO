@@ -9,7 +9,7 @@
     <div class="form-header-custom">
         <h2 class="form-title-left">Subir Nota de Consentimiento</h2>
         <div class="form-actions-right">
-            <a href="{% url 'experiment_detail' participant.experiment.pk %}" class="btn-cancel-outline">← Volver</a>
+            <a href="{% url 'experiment_detail' experiment.pk %}" class="btn-cancel-outline">← Volver</a>
         </div>
     </div>
 
@@ -23,7 +23,7 @@
         </div>
 
         <div class="upload-button-container">
-            <button type="submit" class="btn-save-teal">Subir DICOM</button>
+            <button type="submit" class="btn-save-teal">Subir Consentimiento</button>
         </div>
     </form>
 </div>

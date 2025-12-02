@@ -40,11 +40,25 @@ class TeamMember(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.role}"
 
+class ConsentFile(models.Model):
+    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='consent_files')
+    experiment = models.ForeignKey(Experiment, on_delete=models.CASCADE, related_name='consent_files')
+    file = models.FileField(upload_to='consent_notes/%Y/%m/%d/')
+    original_filename = models.CharField(max_length=255)
+    file_size = models.IntegerField()
+    upload_date = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Consent for {self.participant} - {self.experiment} ({self.upload_date.strftime('%Y-%m-%d')})"
+
 class DicomFile(models.Model):
     id = models.AutoField(primary_key=True)
     participant = models.ForeignKey(Participant, on_delete=models.SET_NULL, null=True, blank=True, related_name='dicom_files')
+    experiment = models.ForeignKey(Experiment, on_delete=models.SET_NULL, null=True, blank=True, related_name='dicom_files')
     patient_name = models.CharField(max_length=255)
-    file = models.CharField(max_length=255)
+    file = models.FileField(upload_to='dicom_files/%Y/%m/%d/')
+    original_filename = models.CharField(max_length=255, blank=True)
+    file_size = models.IntegerField(null=True, blank=True)
     upload_date = models.DateTimeField(auto_now_add=True)
     is_anonymized = models.BooleanField(default=False)
 

@@ -41,7 +41,8 @@
                     </a>
                 </td>
                 <td style="text-align: right;">
-                    <a href="{% url 'experiment_detail' experiment.pk %}" class="action-link">Exportación a BIDS</a>
+                    <a href="{% url 'export_experiment_to_bids' experiment.pk %}" class="action-link">Exportación a
+                        BIDS</a>
                 </td>
             </tr>
             {% empty %}

@@ -33,10 +33,11 @@
         <div class="participant-row-detail">
             <span class="participant-name-bold">{{ participant.subject_id }}</span>
             <div class="participant-links">
-                <a href="{% url 'upload_consent_note' participant.pk %}" class="link-blue">Subir nota de
+                <a href="{% url 'upload_consent_note' experiment.pk participant.pk %}" class="link-blue">Subir nota de
                     consentimiento</a>
                 <span class="separator"></span>
-                <a href="{% url 'upload_participant_dicom' participant.pk %}" class="link-blue">Subir DICOM</a>
+                <a href="{% url 'upload_participant_dicom' experiment.pk participant.pk %}" class="link-blue">Subir
+                    DICOM</a>
             </div>
         </div>
         {% empty %}
@@ -48,7 +49,22 @@
     <div class="team-simple-list">
         {% for member in experiment.members.all %}
         <div class="team-member-row">
-            <span class="member-role">{{ member.role }},</span> <span class="member-name">{{ member.first_name }} {{ member.last_name }}</span>
+            <span class="member-role">
+                {% if member.role %}
+                {{ member.role }}
+                {% endif %}
+            </span>
+            <span class="member-name">
+                {% if member.first_name and member.last_name %}
+                {{ member.first_name }} {{ member.last_name }}
+                {% elif member.first_name %}
+                {{ member.first_name }}
+                {% elif member.last_name %}
+                {{ member.last_name }}
+                {% else %}
+                <!-- no mostrar nada -->
+                {% endif %}
+            </span>
         </div>
         {% empty %}
         <p style="text-align: center; color: #95a5a6;">No hay miembros del equipo registrados.</p>
