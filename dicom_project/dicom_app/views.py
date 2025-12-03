@@ -88,19 +88,19 @@ def process_dicom_file(dicom_file_upload, participant=None, experiment=None):
     # Leer el archivo DICOM
     ds = pydicom.dcmread(dicom_file_upload)
     
-    # Aplicar anonimización
-    ds = anonymize_dicom(ds)
+    # No aplicar anonimización aquí. Guardar archivo original.
+    # ds = anonymize_dicom(ds)  <-- REMOVED
     
     # Generar código de paciente
     pacient_code = generate_pacient_code()
     
-    # Crear directorio y nombre de archivo
-    save_dir = Path("media/dicoms/")
+    # Crear directorio y nombre de archivo para RAW
+    save_dir = Path("media/dicoms/raw/")
     save_dir.mkdir(parents=True, exist_ok=True)
     filename = f"{pacient_code}_{uuid.uuid4().hex[:6]}.dcm"
     full_path = save_dir / filename
     
-    # Guardar el archivo anonimizado
+    # Guardar el archivo ORIGINAL
     ds.save_as(str(full_path))
     
     # Crear instancia DicomFile
@@ -268,7 +268,13 @@ def export_dicom_to_bids(request, pk):
         # Crear carpeta temporal con el único DICOM
         temp_dicom_dir = tempfile.mkdtemp()
         temp_dicom_path = os.path.join(temp_dicom_dir, 'image.dcm')
-        shutil.copyfile(dicom_path, temp_dicom_path)
+        
+        # Leer el archivo original, anonimizar y guardar en temporal
+        ds = pydicom.dcmread(dicom_path)
+        ds = anonymize_dicom(ds)
+        ds.save_as(temp_dicom_path)
+        
+        # shutil.copyfile(dicom_path, temp_dicom_path) # <-- Reemplazado por lógica de anonimización
         convert_directory(temp_dicom_dir, anat_dir, compression=True)
     except Exception as e:
         print("❌ dicom2nifti falló:", str(e))
@@ -277,7 +283,15 @@ def export_dicom_to_bids(request, pk):
     nii_files = list(anat_dir.glob("*.nii.gz"))
     if not nii_files:
         try:
-            convert_single_dicom_to_nifti(dicom_path, output_nifti)
+            # Para conversión simple, también anonimizar primero
+            ds_simple = pydicom.dcmread(dicom_path)
+            ds_simple = anonymize_dicom(ds_simple)
+            # Guardar temporalmente para convertir (o convertir desde objeto si la función lo soportara, pero usa path)
+            # Como convert_single_dicom_to_nifti lee de path, necesitamos guardar el anonimizado
+            temp_simple_dicom = temp_dicom_dir + "/temp_simple.dcm" # Reusar dir temporal
+            ds_simple.save_as(temp_simple_dicom)
+            
+            convert_single_dicom_to_nifti(temp_simple_dicom, output_nifti)
             nii_files = [output_nifti]
         except Exception as e:
             traceback.print_exc()
@@ -400,7 +414,13 @@ def export_experiment_to_bids(request, experiment_id):
                     # Intentar conversión con dicom2nifti
                     temp_dicom_dir = tempfile.mkdtemp()
                     temp_dicom_path = os.path.join(temp_dicom_dir, 'image.dcm')
-                    shutil.copyfile(dicom_path, temp_dicom_path)
+                    
+                    # Leer, anonimizar y guardar temporalmente
+                    ds = pydicom.dcmread(dicom_path)
+                    ds = anonymize_dicom(ds)
+                    ds.save_as(temp_dicom_path)
+                    
+                    # shutil.copyfile(dicom_path, temp_dicom_path) # <-- Reemplazado
                     
                     # Intentar convertir
                     nii_files = list(output_dir.glob("*.nii.gz"))
@@ -416,7 +436,8 @@ def export_experiment_to_bids(request, experiment_id):
                             new_file.rename(output_nifti)
                     except:
                         # Si falla, usar método alternativo
-                        convert_single_dicom_to_nifti(dicom_path, output_nifti)
+                        # Usar el archivo anonimizado temporal que ya creamos
+                        convert_single_dicom_to_nifti(temp_dicom_path, output_nifti)
                     
                     # Limpiar directorio temporal
                     shutil.rmtree(temp_dicom_dir, ignore_errors=True)

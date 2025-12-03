@@ -56,7 +56,7 @@ class DicomFile(models.Model):
     participant = models.ForeignKey(Participant, on_delete=models.SET_NULL, null=True, blank=True, related_name='dicom_files')
     experiment = models.ForeignKey(Experiment, on_delete=models.SET_NULL, null=True, blank=True, related_name='dicom_files')
     patient_name = models.CharField(max_length=255)
-    file = models.FileField(upload_to='dicom_files/%Y/%m/%d/')
+    file = models.FileField(upload_to='dicoms/raw/%Y/%m/%d/')
     original_filename = models.CharField(max_length=255, blank=True)
     file_size = models.IntegerField(null=True, blank=True)
     upload_date = models.DateTimeField(auto_now_add=True)
