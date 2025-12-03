@@ -31,7 +31,7 @@
     <div class="participants-table">
         {% for participant in experiment.participants.all %}
         <div class="participant-row-detail">
-            <span class="participant-name-bold">{{ participant.subject_id }}</span>
+            <span class="participant-name-bold">{{ participant.first_name }} {{ participant.last_name }}</span>
             <div class="participant-links">
                 <a href="{% url 'upload_consent_note' experiment.pk participant.pk %}" class="link-blue">Subir nota de
                     consentimiento</a>

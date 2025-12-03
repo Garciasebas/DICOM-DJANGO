@@ -1,16 +1,16 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="content-card-centered">
-    <div class="dashboard-header-top">
-        <div class="dashboard-brand">DICOM HUB</div>
-    </div>
 
-    <div class="form-header-custom">
-        <h2 class="form-title-left">Subir Nota de Consentimiento</h2>
-        <div class="form-actions-right">
-            <a href="{% url 'experiment_detail' experiment.pk %}" class="btn-cancel-outline">← Volver</a>
-        </div>
+<div class="content-card-centered">
+    <div style="text-align: center; margin-bottom: 1rem;">
+    <div class="dashboard-brand">DICOM HUB</div>
+</div>
+    <div class="upload-header-redesigned">
+        <h2 class="upload-title-elegant">Subir Nota de Consentimiento</h2>
+        <a href="{% url 'experiment_detail' experiment.pk %}" class="btn-back-elegant">
+            <i class="fas fa-arrow-left"></i> Volver
+        </a>
     </div>
 
     <form method="post" enctype="multipart/form-data" class="upload-form-centered">
@@ -23,7 +23,7 @@
         </div>
 
         <div class="upload-button-container">
-            <button type="submit" class="btn-save-teal">Subir Consentimiento</button>
+            <button type="submit" class="btn-save-teal">Subir Nota</button>
         </div>
     </form>
 </div>

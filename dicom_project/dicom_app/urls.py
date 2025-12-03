@@ -20,14 +20,16 @@ from .views import (
     upload_consent_note,
     upload_participant_dicom,
     upload_success,
-    participant_experiments
+    participant_experiments,
+    participant_experiment_dicoms,
+    dicom_image_view
 )
 
 from django.views.generic import RedirectView
 from django.contrib.auth import views as auth_views
 
 urlpatterns = [
-    path('', RedirectView.as_view(pattern_name='dashboard', permanent=False), name='home'),
+    path('', RedirectView.as_view(pattern_name='login', permanent=False), name='home'),
     path('login/', auth_views.LoginView.as_view(), name='login'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     path('dashboard/', dashboard, name='dashboard'),
@@ -41,6 +43,7 @@ urlpatterns = [
     path('participant/<int:pk>/', ParticipantDetailView.as_view(), name='participant_detail'),
     path('participants/', participant_dashboard, name='participant_list'),
     path('participant/<int:participant_id>/experiments/', participant_experiments, name='participant_experiments'),
+    path('participant/<int:participant_id>/experiments/<int:experiment_id>/', participant_experiment_dicoms, name='participant_experiment_dicoms'),
     
     # File upload URLs
     path('experiment/<int:experiment_id>/participant/<int:participant_id>/upload-consent/', upload_consent_note, name='upload_consent_note'),
@@ -49,6 +52,7 @@ urlpatterns = [
 
     path('dicomfile_list/', DicomFileListView.as_view(), name='dicomfile_list'),
     path('<int:pk>/', DicomFileDetailView.as_view(), name='dicomfile_detail'),
+    path('<int:dicom_id>/image/', dicom_image_view, name='dicom_image_view'),
     path('dicomfile/new/', DicomFileCreateView.as_view(), name='dicomfile_create'),
     path('dicomfile/<int:pk>/edit/', DicomFileUpdateView.as_view(), name='dicomfile_edit'),
     path('dicomfile/<int:pk>/delete/', DicomFileDeleteView.as_view(), name='dicomfile_delete'),

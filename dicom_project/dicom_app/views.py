@@ -73,6 +73,66 @@ def anonymize_dicom(ds):
 
     return ds
 
+def process_dicom_file(dicom_file_upload, participant=None, experiment=None):
+    """
+    Procesa un archivo DICOM: lee, anonimiza, guarda y crea registros en BD.
+    
+    Args:
+        dicom_file_upload: Archivo subido desde request.FILES
+        participant: Instancia de Participant (opcional)
+        experiment: Instancia de Experiment (opcional)
+    
+    Returns:
+        Tuple: (DicomFile instance, list of tag dictionaries)
+    """
+    # Leer el archivo DICOM
+    ds = pydicom.dcmread(dicom_file_upload)
+    
+    # Aplicar anonimización
+    ds = anonymize_dicom(ds)
+    
+    # Generar código de paciente
+    pacient_code = generate_pacient_code()
+    
+    # Crear directorio y nombre de archivo
+    save_dir = Path("media/dicoms/")
+    save_dir.mkdir(parents=True, exist_ok=True)
+    filename = f"{pacient_code}_{uuid.uuid4().hex[:6]}.dcm"
+    full_path = save_dir / filename
+    
+    # Guardar el archivo anonimizado
+    ds.save_as(str(full_path))
+    
+    # Crear instancia DicomFile
+    dicom_instance = DicomFile.objects.create(
+        participant=participant,
+        experiment=experiment,
+        patient_name=pacient_code,
+        file=str(full_path),
+        original_filename=dicom_file_upload.name,
+        file_size=dicom_file_upload.size
+    )
+    
+    # Guardar los tags en la base de datos
+    dicom_data = []
+    for element in ds:
+        dicom_entry = DicomTag.objects.create(
+            dicom_file=dicom_instance,
+            tag=str(element.tag),
+            description=element.description(),
+            vr=element.VR,
+            value=str(element.value)
+        )
+        dicom_data.append({
+            'tag': dicom_entry.tag,
+            'description': dicom_entry.description,
+            'vr': dicom_entry.vr,
+            'value': dicom_entry.value,
+        })
+    
+    return dicom_instance, dicom_data
+
+
 
 @login_required
 def upload_dicom(request):
@@ -80,48 +140,15 @@ def upload_dicom(request):
         form = DicomUploadForm(request.POST, request.FILES)
         if form.is_valid():
             dicom_file = request.FILES['dicom_file']
-            ds = pydicom.dcmread(dicom_file)
-
-            # Aplicar anonimización antes de guardar los datos
-            ds = anonymize_dicom(ds)
-
-            # Generar nombre único y ruta permanente
-            pacient_code = generate_pacient_code()
-            save_dir = Path("media/dicoms/")
-            save_dir.mkdir(parents=True, exist_ok=True)
-            filename = f"{pacient_code}_{uuid.uuid4().hex[:6]}.dcm"
-            full_path = save_dir / filename
-
-            # Guardar el archivo anonimizado
-            ds.save_as(str(full_path))
-
-            # Crear instancia DicomFile con ruta al archivo
-            dicom_instance = DicomFile.objects.create(
-                patient_name=pacient_code,
-                file=str(full_path)
-            )
-
-            dicom_data = []  # Para almacenar los datos del DICOM que vamos a mostrar
-
-            # Guardar los tags anonimizados en la base de datos
-            for element in ds:
-                dicom_entry = DicomTag.objects.create(
-                    dicom_file=dicom_instance,
-                    tag=str(element.tag),
-                    description=element.description(),
-                    vr=element.VR,
-                    value=str(element.value)
-                )
-                dicom_data.append({
-                    'tag': dicom_entry.tag,
-                    'description': dicom_entry.description,
-                    'vr': dicom_entry.vr,
-                    'value': dicom_entry.value,
-                })
-
+            
+            # Usar la función helper para procesar el DICOM
+            dicom_instance, dicom_data = process_dicom_file(dicom_file)
+            
             # Pasar los datos DICOM anonimizados a la plantilla de éxito
-            return render(request, 'success.html', {'dicom_data': dicom_data, 'patient_name': pacient_code})
-
+            return render(request, 'success.html', {
+                'dicom_data': dicom_data, 
+                'patient_name': dicom_instance.patient_name
+            })
 
     else:
         form = DicomUploadForm()
@@ -143,7 +170,7 @@ class DicomFileListView(LoginRequiredMixin, ListView):
 
 class DicomFileDetailView(LoginRequiredMixin, DetailView):
     model = DicomFile
-    template_name = 'dicomfile_detail.html'  # Plantilla que mostrarás
+    template_name = 'dicom_app/dicomfile_detail.html'  # Plantilla corregida
     context_object_name = 'dicom_file'  # Nombre del contexto en la plantilla
     
     def get_context_data(self, **kwargs):
@@ -151,6 +178,38 @@ class DicomFileDetailView(LoginRequiredMixin, DetailView):
         # Add participant_id to context for the back button
         if self.object.participant:
             context['participant_id'] = self.object.participant.id
+            
+        # Optimization: Fetch all tags efficiently
+        # We fetch all tags in one query to avoid N+1 issues and multiple hits
+        all_tags = list(self.object.tags.all())
+        
+        # Filter and clean tags for display
+        cleaned_tags = []
+        binary_vrs = ["OB", "OW", "OF", "OL", "UN"]
+        
+        for tag in all_tags:
+            display_value = tag.value
+            
+            # Check for binary VRs, PixelData, or excessive length
+            if (tag.vr in binary_vrs or 
+                "PixelData" in tag.tag or 
+                "7FE0,0010" in tag.tag or 
+                len(tag.value) > 400):
+                display_value = "[Valor binario omitido]"
+            
+            cleaned_tags.append({
+                'tag': tag.tag,
+                'description': tag.description,
+                'vr': tag.vr,
+                'value': display_value
+            })
+        
+        # Split into initial (server-side rendered) and remaining (client-side rendered)
+        initial_count = 50
+        context['initial_tags'] = cleaned_tags[:initial_count]
+        
+        # Serialize remaining tags for JavaScript
+        context['remaining_tags_json'] = json.dumps(cleaned_tags[initial_count:])
         return context
 
 class DicomFileCreateView(LoginRequiredMixin, CreateView):
@@ -466,8 +525,17 @@ def participant_dashboard(request):
     query = request.GET.get('q')
     if query:
         participants = participants.filter(subject_id__icontains=query)
+    
+    # Calcular la última participación para cada participante desde DICOM uploads
+    participants_with_last_date = []
+    for participant in participants:
+        latest_dicom = DicomFile.objects.filter(participant=participant).order_by('-upload_date').first()
+        participant.last_participation = latest_dicom.upload_date if latest_dicom else None
+        participants_with_last_date.append(participant)
         
-    return render(request, 'dicom_app/participant_dashboard.html', {'participants': participants})
+    return render(request, 'dicom_app/participant_dashboard.html', {
+        'participants': participants_with_last_date
+    })
 
 class ExperimentCreateView(LoginRequiredMixin, CreateView):
     model = Experiment
@@ -559,14 +627,12 @@ def upload_participant_dicom(request, experiment_id, participant_id):
         if 'dicom_file' in request.FILES:
             file = request.FILES['dicom_file']
             
-            # Create DicomFile record
-            dicom_file = DicomFile.objects.create(
-                participant=participant,
-                experiment=experiment,
-                patient_name=participant.subject_id,
-                file=file,
-                original_filename=file.name,
-                file_size=file.size
+            # Usar la función helper para procesar el DICOM
+            # Esto incluye: leer, anonimizar, guardar archivo, crear DicomFile y DicomTags
+            dicom_instance, dicom_data = process_dicom_file(
+                file, 
+                participant=participant, 
+                experiment=experiment
             )
             
             return render(request, 'dicom_app/upload_success_dicom.html', {
@@ -597,12 +663,103 @@ def participant_experiments(request, participant_id):
     """Vista para mostrar todos los experimentos de un participante"""
     participant = get_object_or_404(Participant, pk=participant_id)
     
-    # Obtener todos los experimentos donde aparece un participante con el mismo subject_id
-    experiments = Participant.objects.filter(
-        subject_id=participant.subject_id
-    ).select_related('experiment').order_by('-experiment__created_at')
+    # Obtener todos los experimentos del participante usando la relación ManyToMany
+    experiments = participant.experiments.all().order_by('-created_at')
     
     return render(request, 'dicom_app/participant_experiments.html', {
         'participant': participant,
         'experiments': experiments
     })
+
+@login_required
+def participant_experiment_dicoms(request, participant_id, experiment_id):
+    """
+    Muestra todos los archivos DICOM de un participante para un experimento específico
+    """
+    participant = get_object_or_404(Participant, pk=participant_id)
+    experiment = get_object_or_404(Experiment, pk=experiment_id)
+    
+    # Obtener todos los DICOM files del participante para este experimento
+    dicom_files = DicomFile.objects.filter(
+        participant=participant,
+        experiment=experiment
+    ).order_by('-upload_date')
+    
+    return render(request, 'dicom_app/participant_experiment_dicoms.html', {
+        'participant': participant,
+        'experiment': experiment,
+        'dicom_files': dicom_files
+    })
+
+@login_required
+def dicom_image_view(request, dicom_id):
+    """
+    Vista para visualizar la imagen renderizada de un archivo DICOM
+    """
+    import io
+    import base64
+    from PIL import Image
+    
+    dicom_file = get_object_or_404(DicomFile, pk=dicom_id)
+    
+    try:
+        # Leer el archivo DICOM
+        dicom_path = dicom_file.file.path
+        
+        if not os.path.exists(dicom_path):
+            raise Http404("Archivo DICOM no encontrado")
+        
+        ds = pydicom.dcmread(dicom_path)
+        
+        # Verificar que el DICOM tenga datos de imagen
+        if "PixelData" not in ds:
+            return render(request, 'dicom_app/dicom_image_view.html', {
+                'dicom_file': dicom_file,
+                'error': 'Este archivo DICOM no contiene datos de imagen (PixelData).',
+                'participant_id': dicom_file.participant.id if dicom_file.participant else None
+            })
+        
+        # Obtener el pixel array
+        pixel_array = ds.pixel_array
+        
+        # Normalizar la imagen a 0-255
+        pixel_array = pixel_array.astype(float)
+        pixel_min = pixel_array.min()
+        pixel_max = pixel_array.max()
+        
+        if pixel_max > pixel_min:
+            pixel_array = ((pixel_array - pixel_min) / (pixel_max - pixel_min) * 255.0)
+        
+        pixel_array = pixel_array.astype(np.uint8)
+        
+        # Convertir a imagen PIL
+        if len(pixel_array.shape) == 2:
+            # Imagen en escala de grises
+            image = Image.fromarray(pixel_array, mode='L')
+        elif len(pixel_array.shape) == 3:
+            # Imagen RGB
+            image = Image.fromarray(pixel_array, mode='RGB')
+        else:
+            raise Exception("Formato de imagen no soportado")
+        
+        # Convertir la imagen a base64 para embeber en HTML
+        buffer = io.BytesIO()
+        image.save(buffer, format='PNG')
+        buffer.seek(0)
+        image_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        
+        return render(request, 'dicom_app/dicom_image_view.html', {
+            'dicom_file': dicom_file,
+            'image_data': image_base64,
+            'image_width': pixel_array.shape[1] if len(pixel_array.shape) >= 2 else 0,
+            'image_height': pixel_array.shape[0] if len(pixel_array.shape) >= 1 else 0,
+            'participant_id': dicom_file.participant.id if dicom_file.participant else None
+        })
+        
+    except Exception as e:
+        return render(request, 'dicom_app/dicom_image_view.html', {
+            'dicom_file': dicom_file,
+            'error': f'Error al procesar la imagen DICOM: {str(e)}',
+            'participant_id': dicom_file.participant.id if dicom_file.participant else None
+        })
+

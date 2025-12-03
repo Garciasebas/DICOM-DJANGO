@@ -2,31 +2,130 @@
 
 {% block content %}
 
-<div class="delete-modal-container">
-    <div class="delete-modal">
-        <div class="dashboard-header-top">
-            <div class="dashboard-brand">DICOM HUB</div>
-        </div>
-        <h2 class="delete-modal-title">Confirmar Eliminación</h2>
+<style>
+    /* Estilos encapsulados solo para esta página de confirmación de eliminación */
+    .delete-confirmation-wrapper {
+        min-height: 100vh;
+        background-color: #E8EAF6;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding-top: 60px;
+        padding-bottom: 60px;
+    }
 
-        <p class="delete-modal-text">
+    .delete-confirmation-header {
+        font-size: 32px;
+        font-weight: 700;
+        color: #5C6BC0;
+        text-align: center;
+        margin-bottom: 40px;
+        letter-spacing: 2px;
+    }
+
+    .delete-confirmation-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        padding: 40px 50px;
+        max-width: 500px;
+        width: 90%;
+        text-align: center;
+    }
+
+    .delete-confirmation-card h2 {
+        color: #E53935;
+        font-size: 24px;
+        font-weight: 700;
+        margin: 0 0 20px 0;
+    }
+
+    .delete-confirmation-card .confirmation-text {
+        color: #666;
+        font-size: 15px;
+        line-height: 1.6;
+        margin: 0 0 10px 0;
+    }
+
+    .delete-confirmation-card .filename-text {
+        color: #1976D2;
+        font-size: 14px;
+        font-weight: 500;
+        margin: 0 0 30px 0;
+        word-wrap: break-word;
+    }
+
+    .delete-confirmation-card form {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .delete-confirmation-card .btn-delete {
+        background-color: #E53935;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 14px 20px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .delete-confirmation-card .btn-delete:hover {
+        background-color: #C62828;
+    }
+
+    .delete-confirmation-card .btn-cancel {
+        background-color: white;
+        color: #666;
+        border: 1px solid #DDD;
+        border-radius: 8px;
+        padding: 14px 20px;
+        font-size: 15px;
+        font-weight: 500;
+        cursor: pointer;
+        text-decoration: none;
+        transition: all 0.2s;
+        display: inline-block;
+    }
+
+    .delete-confirmation-card .btn-cancel:hover {
+        background-color: #F5F5F5;
+        border-color: #BBB;
+    }
+</style>
+
+<div class="delete-confirmation-wrapper">
+    <div class="delete-confirmation-header">DICOM HUB</div>
+
+    <div class="delete-confirmation-card">
+        <h2>Confirmar Eliminación</h2>
+
+        <p class="confirmation-text">
             ¿Estás seguro de que deseas eliminar el archivo DICOM
         </p>
 
-        <p class="delete-modal-filename">
+        <p class="filename-text">
             "DICOM File for {{ object.patient_name }} uploaded on {{ object.upload_date|date:"Y-m-d
             H:i:s.u"|add:"+00:00" }}"?
         </p>
 
-        <form method="post" class="delete-modal-actions">
+        <form method="post">
             {% csrf_token %}
-            <button type="submit" class="btn-delete-red">
+            <button type="submit" class="btn-delete">
                 <i class="fas fa-trash-can"></i> Eliminar
             </button>
-            <a href="{% url 'dicomfile_detail' object.pk %}" class="btn-cancel-outline">
+            <a href="{% url 'dicomfile_detail' object.pk %}" class="btn-cancel">
                 Cancelar
             </a>
         </form>
     </div>
 </div>
+
 {% endblock %}

@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid p-0" style="background-color: #E6F0FF; min-height: 100vh;">
+    <div class="row mb-4 pt-4">
+        <div class="col-12 text-center">
+            <h1 style="color: #5B7CFA; font-weight: 800; font-size: 2.5rem; letter-spacing: 2px;">DICOM HUB</h1>
+        </div>
+    </div>
+
+    <div class="row justify-content-center px-4">
+        <div class="col-12 col-xl-10">
+            <div class="card border-0 shadow-sm" style="border-radius: 20px; padding: 2rem;">
+                <div class="card-body p-0">
+
+                    <h2 class="mb-3" style="font-weight: 700; font-size: 1.8rem; color: #000;">
+                        Detalle del Archivo DICOM
+                    </h2>
+
+                    <div class="mb-3" style="font-size: 0.9rem; line-height: 1.6;">
+                        <p class="mb-1" style="color: #000;">
+                            <strong>Nombre del Paciente:</strong>
+                            <span style="color: #555;">{{ dicom_file.patient_name }}</span>
+                        </p>
+                        <p class="mb-0" style="color: #000;">
+                            <strong>Fecha de Subida:</strong>
+                            <span style="color: #555;">{{ dicom_file.upload_date|date:"Y-m-d H:i" }}</span>
+                        </p>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2 mb-4 align-items-center justify-content-center">
+                        <a href="{% url 'dicomfile_edit' dicom_file.pk %}" class="btn"
+                            style="background-color: #FFC107; color: #000; font-weight: 600; border: none; border-radius: 5px; padding: 0.4rem 1.2rem; font-size: 0.85rem;">Editar</a>
+                        <a href="{% url 'dicomfile_delete' dicom_file.pk %}" class="btn"
+                            style="background-color: #DC3545; color: #fff; font-weight: 600; border: none; border-radius: 5px; padding: 0.4rem 1.2rem; font-size: 0.85rem;">Eliminar</a>
+
+                        {% if participant_id %}
+                        <a href="{% url 'participant_experiments' participant_id %}" class="btn"
+                            style="background-color: #fff; color: #666; font-weight: 500; border: 1px solid #ddd; border-radius: 5px; padding: 0.4rem 1.2rem; font-size: 0.85rem;">←
+                            Volver al listado</a>
+                        {% else %}
+                        <a href="{% url 'dashboard' %}" class="btn"
+                            style="background-color: #fff; color: #666; font-weight: 500; border: 1px solid #ddd; border-radius: 5px; padding: 0.4rem 1.2rem; font-size: 0.85rem;">←
+                            Volver al listado</a>
+                        {% endif %}
+
+                        <a href="{% url 'dicom_image_view' dicom_file.pk %}" class="btn"
+                            style="background-color: #1E6091; color: #fff; font-weight: 600; border: none; border-radius: 5px; padding: 0.4rem 1.5rem; font-size: 0.85rem;">Imagen</a>
+                    </div>
+
+                    <h4 class="mb-3" style="font-weight: 700; font-size: 1rem; color: #000;">Tags Asociados:</h4>
+
+                    <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                        <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.8rem;">
+                            <thead style="position: sticky; top: 0; background-color: #fff; z-index: 10;">
+                                <tr style="border-bottom: 2px solid #dee2e6;">
+                                    <th scope="col" style="font-weight: 700; color: #000; padding: 0.5rem; width: 12%;">
+                                        Tag</th>
+                                    <th scope="col" style="font-weight: 700; color: #000; padding: 0.5rem; width: 28%;">
+                                        Descripción</th>
+                                    <th scope="col" style="font-weight: 700; color: #000; padding: 0.5rem; width: 8%;">
+                                        VR</th>
+                                    <th scope="col" style="font-weight: 700; color: #000; padding: 0.5rem;">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in initial_tags %}
+                                <tr style="border-bottom: 1px solid #f0f0f0;">
+                                    <td style="color: #333; padding: 0.35rem 0.5rem; font-family: monospace;">
+                                        {{ item.tag }}
+                                    </td>
+                                    <td style="color: #555; padding: 0.35rem 0.5rem;">
+                                        {{ item.description }}
+                                    </td>
+                                    <td style="color: #555; padding: 0.35rem 0.5rem; text-align: center;">
+                                        {{ item.vr }}
+                                    </td>
+                                    <td style="color: #555; padding: 0.35rem 0.5rem; word-break: break-word;">
+                                        {{ item.value }}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-4 text-muted">No hay tags asociados a este
+                                        archivo.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .content-area {
+        background-color: #E6F0FF !important;
+        padding: 0 !important;
+    }
+
+    .table th,
+    .table td {
+        border-top: none;
+    }
+
+    .table-responsive::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .table-responsive::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+
+    .table-responsive::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 10px;
+    }
+
+    .table-responsive::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+</style>
+
+<!-- Hidden data for progressive loading -->
+<script id="remaining-tags-data" type="application/json">
+    {{ remaining_tags_json|safe }}
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const remainingTagsScript = document.getElementById('remaining-tags-data');
+        if (!remainingTagsScript) return;
+
+        try {
+            const remainingTags = JSON.parse(remainingTagsScript.textContent);
+            if (!remainingTags || remainingTags.length === 0) return;
+
+            const tableBody = document.querySelector('table tbody');
+            const CHUNK_SIZE = 50;
+            let currentIndex = 0;
+
+            function renderChunk() {
+                const fragment = document.createDocumentFragment();
+                const endIndex = Math.min(currentIndex + CHUNK_SIZE, remainingTags.length);
+
+                for (let i = currentIndex; i < endIndex; i++) {
+                    const tag = remainingTags[i];
+                    const tr = document.createElement('tr');
+                    tr.style.borderBottom = '1px solid #f0f0f0';
+
+                    tr.innerHTML = `
+                        <td style="color: #333; padding: 0.35rem 0.5rem; font-family: monospace;">${tag.tag}</td>
+                        <td style="color: #555; padding: 0.35rem 0.5rem;">${tag.description}</td>
+                        <td style="color: #555; padding: 0.35rem 0.5rem; text-align: center;">${tag.vr}</td>
+                        <td style="color: #555; padding: 0.35rem 0.5rem; word-break: break-word;">${tag.value}</td>
+                    `;
+                    fragment.appendChild(tr);
+                }
+
+                tableBody.appendChild(fragment);
+                currentIndex += CHUNK_SIZE;
+
+                if (currentIndex < remainingTags.length) {
+                    // Schedule next chunk
+                    requestAnimationFrame(renderChunk);
+                }
+            }
+
+            // Start rendering after a short delay to allow initial paint
+            setTimeout(renderChunk, 100);
+
+        } catch (e) {
+            console.error('Error loading remaining tags:', e);
+        }
+    });
+</script>
+{% endblock %}

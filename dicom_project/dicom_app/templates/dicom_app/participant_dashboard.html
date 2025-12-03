@@ -50,10 +50,16 @@
                             <tbody>
                                 {% for participant in participants %}
                                 <tr style="border-bottom: 1px solid #f0f0f0;">
-                                    <td class="py-3" style="color: #555; font-weight: 500;">{{ participant.subject_id }}
+                                    <td class="py-3" style="color: #555; font-weight: 500;">
+                                        {{ participant.first_name }} {{ participant.last_name }}
                                     </td>
-                                    <td class="py-3" style="color: #555;">2025-04-26 00:46</td>
-                                    <!-- Placeholder date as per image/mockup logic, or use real data if available -->
+                                    <td class="py-3" style="color: #555;">
+                                        {% if participant.last_participation %}
+                                        {{ participant.last_participation|date:"Y-m-d H:i" }}
+                                        {% else %}
+                                        N/A
+                                        {% endif %}
+                                    </td>
                                     <td class="py-3">
                                         <a href="{% url 'participant_experiments' participant.pk %}" class="btn p-0"
                                             style="color: #999;">
