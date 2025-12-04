@@ -53,6 +53,7 @@ def process_dicom_file(dicom_file_upload, participant=None, experiment=None):
     pacient_code = generate_pacient_code()
     
     # Crear directorio y nombre de archivo para RAW
+    # El path debe ser relativo a MEDIA_ROOT (sin incluir 'media/')
     save_dir = Path("media/dicoms/raw/")
     save_dir.mkdir(parents=True, exist_ok=True)
     filename = f"{pacient_code}_{uuid.uuid4().hex[:6]}.dcm"
@@ -61,12 +62,15 @@ def process_dicom_file(dicom_file_upload, participant=None, experiment=None):
     # Guardar el archivo ORIGINAL
     ds.save_as(str(full_path))
     
+    # Path relativo a MEDIA_ROOT para Django FileField
+    relative_path = f"dicoms/raw/{filename}"
+    
     # Crear instancia DicomFile
     dicom_instance = DicomFile.objects.create(
         participant=participant,
         experiment=experiment,
         patient_name=pacient_code,
-        file=str(full_path),
+        file=relative_path,  # Usar path relativo a MEDIA_ROOT
         original_filename=dicom_file_upload.name,
         file_size=dicom_file_upload.size
     )
@@ -502,6 +506,68 @@ def upload_consent_note(request, experiment_id, participant_id):
     })
 
 @login_required
+def view_consent_note(request, participant_id, experiment_id):
+    """Vista para visualizar la nota de consentimiento de un participante en un experimento"""
+    participant = get_object_or_404(Participant, pk=participant_id)
+    experiment = get_object_or_404(Experiment, pk=experiment_id)
+    
+    # Buscar el ConsentFile más reciente para este participante y experimento
+    consent_file = ConsentFile.objects.filter(
+        participant=participant,
+        experiment=experiment
+    ).order_by('-upload_date').first()
+    
+    # Si no existe el archivo, mostrar mensaje de error
+    if not consent_file or not consent_file.file:
+        return HttpResponse(
+            "Este participante no tiene nota de consentimiento cargada.",
+            content_type="text/plain; charset=utf-8"
+        )
+    
+    # Verificar que el archivo existe en el sistema de archivos
+    try:
+        file_path = consent_file.file.path
+        if not os.path.exists(file_path):
+            return HttpResponse(
+                "El archivo de consentimiento no se encuentra en el servidor.",
+                content_type="text/plain; charset=utf-8"
+            )
+    except Exception as e:
+        return HttpResponse(
+            f"Error al acceder al archivo: {str(e)}",
+            content_type="text/plain; charset=utf-8"
+        )
+    
+    # Detectar el tipo de contenido basado en la extensión del archivo
+    file_extension = os.path.splitext(file_path)[1].lower()
+    content_type_map = {
+        '.pdf': 'application/pdf',
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.gif': 'image/gif',
+    }
+    content_type = content_type_map.get(file_extension, 'application/pdf')
+    
+    # Servir el archivo directamente usando FileResponse con context manager
+    try:
+        file_handle = open(file_path, 'rb')
+        response = FileResponse(
+            file_handle,
+            content_type=content_type
+        )
+        # Configurar para mostrar inline (en el navegador) en lugar de descargar
+        filename = consent_file.original_filename or "consent_note.pdf"
+        response['Content-Disposition'] = f'inline; filename="{filename}"'
+        return response
+    except Exception as e:
+        return HttpResponse(
+            f"Error al servir el archivo: {str(e)}",
+            content_type="text/plain; charset=utf-8"
+        )
+
+
+@login_required
 def upload_participant_dicom(request, experiment_id, participant_id):
     """Vista para subir archivos DICOM de un participante"""
     experiment = get_object_or_404(Experiment, pk=experiment_id)
@@ -578,35 +644,64 @@ def participant_experiment_dicoms(request, participant_id, experiment_id):
 @login_required
 def dicom_image_view(request, dicom_id):
     """
-    Vista para visualizar la imagen renderizada de un archivo DICOM
+    Vista para visualizar la imagen renderizada de un archivo DICOM.
+    Retorna directamente la imagen PNG.
     """
     import io
-    import base64
     from PIL import Image
+    from django.conf import settings
     
     dicom_file = get_object_or_404(DicomFile, pk=dicom_id)
     
+    # 1. Resolución robusta de la ruta del archivo
+    possible_paths = []
+    
+    # Ruta estándar de Django
     try:
-        # Leer el archivo DICOM
-        dicom_path = dicom_file.file.path
+        possible_paths.append(dicom_file.file.path)
+    except:
+        pass
         
-        if not os.path.exists(dicom_path):
-            raise Http404("Archivo DICOM no encontrado")
+    # Ruta corrigiendo posible duplicación de 'media/'
+    if dicom_file.file.name.startswith('media/'):
+        clean_name = dicom_file.file.name.replace('media/', '', 1)
+        possible_paths.append(os.path.join(settings.MEDIA_ROOT, clean_name))
         
+    # Ruta asumiendo que el nombre ya es relativo a MEDIA_ROOT
+    possible_paths.append(os.path.join(settings.MEDIA_ROOT, dicom_file.file.name))
+    
+    # Ruta absoluta hardcodeada para debug
+    try:
+        fname = os.path.basename(dicom_file.file.name)
+        manual_path = os.path.join(settings.MEDIA_ROOT, 'dicoms', 'raw', fname)
+        possible_paths.append(manual_path)
+    except:
+        pass
+    
+    dicom_path = None
+    for path in possible_paths:
+        if os.path.exists(path):
+            dicom_path = path
+            break
+            
+    if not dicom_path:
+        return HttpResponse("Archivo DICOM no encontrado en el servidor.", status=404)
+    
+    try:
+        # 2. Leer archivo DICOM
         ds = pydicom.dcmread(dicom_path)
         
-        # Verificar que el DICOM tenga datos de imagen
+        # 3. Verificar PixelData
         if "PixelData" not in ds:
-            return render(request, 'dicom_app/dicom_image_view.html', {
-                'dicom_file': dicom_file,
-                'error': 'Este archivo DICOM no contiene datos de imagen (PixelData).',
-                'participant_id': dicom_file.participant.id if dicom_file.participant else None
-            })
+            # Intentar generar una imagen placeholder con texto
+            img = Image.new('RGB', (400, 100), color = (255, 255, 255))
+            # Aquí podríamos dibujar texto, pero por ahora retornamos error simple
+            return HttpResponse("El archivo DICOM no contiene datos de imagen (PixelData).", status=400)
         
-        # Obtener el pixel array
+        # 4. Procesar imagen
         pixel_array = ds.pixel_array
         
-        # Normalizar la imagen a 0-255
+        # Normalizar a 0-255
         pixel_array = pixel_array.astype(float)
         pixel_min = pixel_array.min()
         pixel_max = pixel_array.max()
@@ -616,34 +711,23 @@ def dicom_image_view(request, dicom_id):
         
         pixel_array = pixel_array.astype(np.uint8)
         
-        # Convertir a imagen PIL
+        # Convertir a PIL
         if len(pixel_array.shape) == 2:
-            # Imagen en escala de grises
             image = Image.fromarray(pixel_array, mode='L')
         elif len(pixel_array.shape) == 3:
-            # Imagen RGB
+            # Si es RGB, asegurar orden correcto
+            if pixel_array.shape[0] == 3: # Canales primero
+                pixel_array = np.moveaxis(pixel_array, 0, -1)
             image = Image.fromarray(pixel_array, mode='RGB')
         else:
-            raise Exception("Formato de imagen no soportado")
-        
-        # Convertir la imagen a base64 para embeber en HTML
-        buffer = io.BytesIO()
-        image.save(buffer, format='PNG')
-        buffer.seek(0)
-        image_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
-        
-        return render(request, 'dicom_app/dicom_image_view.html', {
-            'dicom_file': dicom_file,
-            'image_data': image_base64,
-            'image_width': pixel_array.shape[1] if len(pixel_array.shape) >= 2 else 0,
-            'image_height': pixel_array.shape[0] if len(pixel_array.shape) >= 1 else 0,
-            'participant_id': dicom_file.participant.id if dicom_file.participant else None
-        })
+            return HttpResponse("Formato de dimensiones de imagen no soportado.", status=400)
+            
+        # 5. Retornar respuesta HTTP con imagen
+        response = HttpResponse(content_type="image/png")
+        image.save(response, "PNG")
+        return response
         
     except Exception as e:
-        return render(request, 'dicom_app/dicom_image_view.html', {
-            'dicom_file': dicom_file,
-            'error': f'Error al procesar la imagen DICOM: {str(e)}',
-            'participant_id': dicom_file.participant.id if dicom_file.participant else None
-        })
+        traceback.print_exc()
+        return HttpResponse(f"Error procesando imagen DICOM: {str(e)}", status=500)
 

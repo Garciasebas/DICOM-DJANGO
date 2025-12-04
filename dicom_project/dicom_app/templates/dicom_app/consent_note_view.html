@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid p-0" style="background-color: #E6F0FF; min-height: 100vh;">
+    <!-- Header Title -->
+    <div class="row mb-4 pt-4">
+        <div class="col-12 text-center">
+            <h1 style="color: #5B7CFA; font-weight: 800; font-size: 2.5rem; letter-spacing: 2px;">DICOM HUB</h1>
+        </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="row justify-content-center px-4">
+        <div class="col-12 col-xl-10">
+            <div class="card border-0 shadow-sm" style="border-radius: 20px; padding: 2rem;">
+                <div class="card-body p-0">
+
+                    <h2 class="mb-3" style="font-weight: 700; font-size: 1.8rem; color: #000;">
+                        Nota de Consentimiento del Participante
+                    </h2>
+
+                    <div class="mb-4" style="font-size: 0.9rem; line-height: 1.6;">
+                        <p class="mb-1" style="color: #000;">
+                            <strong>Participante:</strong>
+                            <span style="color: #555;">{{ participant.first_name }} {{ participant.last_name }} ({{
+                                participant.subject_id }})</span>
+                        </p>
+                        <p class="mb-0" style="color: #000;">
+                            <strong>Experimento:</strong>
+                            <span style="color: #555;">{{ experiment.name }}</span>
+                        </p>
+                    </div>
+
+                    {% if has_consent and consent_file %}
+                    <!-- Consent File Information -->
+                    <div class="mb-4 p-3"
+                        style="background-color: #f8f9fa; border-radius: 10px; border-left: 4px solid #5B7CFA;">
+                        <p class="mb-2" style="color: #000;">
+                            <strong>Archivo:</strong>
+                            <span style="color: #555;">{{ consent_file.original_filename }}</span>
+                        </p>
+                        <p class="mb-2" style="color: #000;">
+                            <strong>Tamaño:</strong>
+                            <span style="color: #555;">{{ consent_file.file_size|filesizeformat }}</span>
+                        </p>
+                        <p class="mb-0" style="color: #000;">
+                            <strong>Fecha de Subida:</strong>
+                            <span style="color: #555;">{{ consent_file.upload_date|date:"Y-m-d H:i" }}</span>
+                        </p>
+                    </div>
+
+                    <!-- File Viewer -->
+                    <div class="mb-4 text-center"
+                        style="background-color: #fff; border-radius: 10px; padding: 2rem; border: 1px solid #e0e0e0;">
+                        {% if file_ext == ".pdf" %}
+                        <!-- PDF Viewer -->
+                        <embed src="{{ consent_file.file.url }}" type="application/pdf"
+                            style="width: 100%; height: 600px; border-radius: 5px;">
+                        {% else %}
+                        <!-- Image or other file types -->
+                        <img src="{{ consent_file.file.url }}" alt="Nota de Consentimiento"
+                            style="max-width: 100%; height: auto; border-radius: 5px;" class="img-fluid">
+                        {% endif %}
+
+                        <div class="mt-3">
+                            <a href="{{ consent_file.file.url }}" download="{{ consent_file.original_filename }}"
+                                class="btn"
+                                style="background-color: #5B7CFA; color: #fff; font-weight: 600; border: none; border-radius: 5px; padding: 0.5rem 1.5rem; font-size: 0.9rem;">
+                                <i class="fas fa-download"></i> Descargar Archivo
+                            </a>
+                        </div>
+                    </div>
+                    {% else %}
+                    <!-- No Consent File -->
+                    <div class="alert alert-warning" role="alert"
+                        style="border-radius: 10px; border-left: 4px solid #ffc107;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Este participante no tiene una nota de consentimiento cargada para este
+                            experimento.</strong>
+                    </div>
+
+                    <div class="text-center mt-4">
+                        <a href="{% url 'upload_consent_note' experiment.pk participant.pk %}" class="btn"
+                            style="background-color: #5B7CFA; color: #fff; font-weight: 600; border: none; border-radius: 5px; padding: 0.5rem 1.5rem; font-size: 0.9rem;">
+                            <i class="fas fa-upload"></i> Subir Nota de Consentimiento
+                        </a>
+                    </div>
+                    {% endif %}
+
+                    <!-- Back Button -->
+                    <div class="d-flex justify-content-center mt-4">
+                        <a href="{% url 'participant_experiments' participant.pk %}" class="btn"
+                            style="background-color: #fff; color: #666; font-weight: 500; border: 1px solid #ddd; border-radius: 5px; padding: 0.5rem 1.5rem; font-size: 0.9rem;">
+                            ← Volver al listado
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .content-area {
+        background-color: #E6F0FF !important;
+        padding: 0 !important;
+    }
+</style>
+{% endblock %}

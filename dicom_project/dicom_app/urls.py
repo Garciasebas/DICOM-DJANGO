@@ -18,6 +18,7 @@ from .views import (
     ParticipantDetailView,
     ParticipantListView,
     upload_consent_note,
+    view_consent_note,
     upload_participant_dicom,
     upload_success,
     participant_experiments,
@@ -47,6 +48,7 @@ urlpatterns = [
     
     # File upload URLs
     path('experiment/<int:experiment_id>/participant/<int:participant_id>/upload-consent/', upload_consent_note, name='upload_consent_note'),
+    path('participant/<int:participant_id>/experiment/<int:experiment_id>/consent-note/', view_consent_note, name='view_consent_note'),
     path('experiment/<int:experiment_id>/participant/<int:participant_id>/upload-dicom/', upload_participant_dicom, name='upload_participant_dicom'),
     path('upload-success/<str:upload_type>/', upload_success, name='upload_success'),
 
