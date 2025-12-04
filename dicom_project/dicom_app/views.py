@@ -20,58 +20,16 @@ import uuid
 import numpy as np
 import nibabel as nib
 import uuid
+from .bids_utils import (
+    normalize_subject_id, detect_modality, convert_dicom_to_nifti,
+    create_dataset_description, create_participants_tsv
+)
 
 def generate_pacient_code():
     # Genera un UUID4 y toma los primeros 8 caracteres en mayúsculas
     return str(uuid.uuid4())[:8].upper()
 
-def anonymize_dicom(ds):
-    """
-    Función para anonimizar un archivo DICOM eliminando o modificando datos sensibles.
 
-     Aplica técnicas de anonimización al archivo DICOM:
-    1. Pseudonimización: Reemplaza valores sensibles por identificadores anónimos.
-    2. Enmascaramiento de datos: Sustituye información con valores genéricos.
-    3. Eliminación de datos sensibles: Borra etiquetas privadas y secundarias.
-    """
-    # Lista de elementos sensibles a anonimizar
-    sensitive_tags = [
-        "PatientName", "PatientID", "PatientBirthDate", "PatientSex",
-        "InstitutionName", "ReferringPhysicianName", "StudyInstanceUID",
-        "SeriesInstanceUID", "AccessionNumber"
-    ]
-
-    # Eliminar datos sensibles
-    for tag in sensitive_tags:
-        if tag in ds:
-            ds.data_element(tag).value = ""
-
-    # Reemplazar identificadores únicos
-    ds.StudyInstanceUID = pydicom.uid.generate_uid()
-    ds.SeriesInstanceUID = pydicom.uid.generate_uid()
-    ds.SOPInstanceUID = pydicom.uid.generate_uid()
-
-    # Pseudonimización: Sustitución de datos personales con valores anónimos
-    def person_names_callback(ds, elem):
-        if elem.VR == "PN":  # PN = Personal Name
-            elem.value = "anonymous"
-
-    ds.walk(person_names_callback)
-
-    # Eliminación de datos sensibles
-    ds.remove_private_tags()
-
-    def curves_callback(ds, elem):
-        if elem.tag.group & 0xFF00 == 0x5000:
-            del ds[elem.tag]
-
-    ds.walk(curves_callback)
-
-    # Enmascaramiento de datos: Se reemplazan con valores genéricos en lugar de eliminarlos
-    if "PatientBirthDate" in ds:
-        ds.data_element("PatientBirthDate").value = "19000101"
-
-    return ds
 
 def process_dicom_file(dicom_file_upload, participant=None, experiment=None):
     """
@@ -258,81 +216,53 @@ def export_dicom_to_bids(request, pk):
         raise Http404("Archivo DICOM no encontrado")
 
     temp_dir = tempfile.mkdtemp()
-    subject_id = f"sub-{dicom_instance.patient_name.lower()}"
-    session_id = "ses-01"
-    anat_dir = Path(temp_dir) / subject_id / session_id / "anat"
-    anat_dir.mkdir(parents=True, exist_ok=True)
-
-    output_nifti = anat_dir / 'output.nii.gz'
     try:
-        # Crear carpeta temporal con el único DICOM
-        temp_dicom_dir = tempfile.mkdtemp()
-        temp_dicom_path = os.path.join(temp_dicom_dir, 'image.dcm')
+        # Generate BIDS structure
+        subject_id = normalize_subject_id(1) # Single file export gets sub-01
+        session_id = "ses-01"
         
-        # Leer el archivo original, anonimizar y guardar en temporal
+        # Detect modality
         ds = pydicom.dcmread(dicom_path)
-        ds = anonymize_dicom(ds)
-        ds.save_as(temp_dicom_path)
+        modality_folder, suffix = detect_modality(ds)
         
-        # shutil.copyfile(dicom_path, temp_dicom_path) # <-- Reemplazado por lógica de anonimización
-        convert_directory(temp_dicom_dir, anat_dir, compression=True)
+        output_dir = Path(temp_dir) / subject_id / session_id / modality_folder
+        output_dir.mkdir(parents=True, exist_ok=True)
+        
+        output_basename = f"{subject_id}_{suffix}"
+        
+        # Convert
+        nifti_path, json_path = convert_dicom_to_nifti(dicom_path, output_dir, output_basename)
+        
+        if not nifti_path:
+             return HttpResponse("❌ La conversión falló: no se generó ningún archivo .nii.gz", status=500)
+
+        # Create dataset_description.json
+        create_dataset_description(Path(temp_dir))
+        
+        # Create participants.tsv (minimal)
+        create_participants_tsv(Path(temp_dir), [{
+            'participant_id': subject_id,
+            'age': 'n/a',
+            'sex': 'n/a',
+            'group': 'control'
+        }])
+
+        # Zip
+        zip_path = tempfile.NamedTemporaryFile(delete=False, suffix=".zip").name
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for root, _, files in os.walk(temp_dir):
+                for file in files:
+                    full_path = os.path.join(root, file)
+                    arcname = os.path.relpath(full_path, temp_dir)
+                    zipf.write(full_path, arcname=arcname)
+
+        return FileResponse(open(zip_path, 'rb'), as_attachment=True, filename=f"{subject_id}_bids.zip")
+        
     except Exception as e:
-        print("❌ dicom2nifti falló:", str(e))
-
-    # Si aún no se generó ningún NIfTI, usar método alternativo
-    nii_files = list(anat_dir.glob("*.nii.gz"))
-    if not nii_files:
-        try:
-            # Para conversión simple, también anonimizar primero
-            ds_simple = pydicom.dcmread(dicom_path)
-            ds_simple = anonymize_dicom(ds_simple)
-            # Guardar temporalmente para convertir (o convertir desde objeto si la función lo soportara, pero usa path)
-            # Como convert_single_dicom_to_nifti lee de path, necesitamos guardar el anonimizado
-            temp_simple_dicom = temp_dicom_dir + "/temp_simple.dcm" # Reusar dir temporal
-            ds_simple.save_as(temp_simple_dicom)
-            
-            convert_single_dicom_to_nifti(temp_simple_dicom, output_nifti)
-            nii_files = [output_nifti]
-        except Exception as e:
-            traceback.print_exc()
-            return HttpResponse(f"No se pudo convertir el DICOM: {e}", status=500)
-
-    if not nii_files:
-        return HttpResponse("❌ La conversión falló: no se generó ningún archivo .nii.gz", status=500)
-
-    output_nifti = nii_files[0]
-
-    # Crear JSON de metadatos
-    metadata = {
-        "Modality": "MRI",
-        "Manufacturer": "Unknown",
-        "PatientName": dicom_instance.patient_name,
-        "InstitutionName": "Anonymous Hospital"
-    }
-
-    try:
-        json_path = output_nifti.with_suffix(".json")
-        with open(json_path, 'w') as jf:
-            json.dump(metadata, jf, indent=4)
-    except Exception as e:
-        return HttpResponse(f"No se pudo crear el archivo JSON: {e}", status=500)
-
-    with open(Path(temp_dir) / "dataset_description.json", 'w') as df:
-        json.dump({
-            "Name": "Exported BIDS Dataset",
-            "BIDSVersion": "1.8.0"
-        }, df, indent=4)
-
-    # Comprimir todo
-    zip_path = tempfile.NamedTemporaryFile(delete=False, suffix=".zip").name
-    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        for root, _, files in os.walk(temp_dir):
-            for file in files:
-                full_path = os.path.join(root, file)
-                arcname = os.path.relpath(full_path, temp_dir)
-                zipf.write(full_path, arcname=arcname)
-
-    return FileResponse(open(zip_path, 'rb'), as_attachment=True, filename=f"{subject_id}_bids.zip")
+        traceback.print_exc()
+        return HttpResponse(f"Error exportando a BIDS: {e}", status=500)
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
 @login_required
 def export_experiment_to_bids(request, experiment_id):
@@ -347,167 +277,100 @@ def export_experiment_to_bids(request, experiment_id):
     bids_root = Path(temp_dir) / "my_dataset"
     bids_root.mkdir(parents=True, exist_ok=True)
     
-    # Obtener todos los participantes del experimento
-    participants = experiment.participants.all()
-    
-    if not participants.exists():
-        return HttpResponse("No hay participantes asociados a este experimento.", status=404)
-    
-    # Crear archivo participants.tsv
-    participants_tsv_path = bids_root / "participants.tsv"
-    with open(participants_tsv_path, 'w') as tsv_file:
-        tsv_file.write("participant_id\tage\tsex\tgroup\n")
-        for participant in participants:
-            subject_id = f"sub-{participant.subject_id.lower()}"
-            tsv_file.write(f"{subject_id}\tNA\tNA\tcontrol\n")
-    
-    # Procesar cada participante
-    for participant in participants:
-        subject_id = f"sub-{participant.subject_id.lower()}"
-        subject_dir = bids_root / subject_id
+    try:
+        # Obtener todos los participantes del experimento
+        participants = experiment.participants.all()
         
-        # Crear carpetas anat, func, dwi para cada participante
-        anat_dir = subject_dir / "anat"
-        func_dir = subject_dir / "func"
-        dwi_dir = subject_dir / "dwi"
+        if not participants.exists():
+            return HttpResponse("No hay participantes asociados a este experimento.", status=404)
         
-        anat_dir.mkdir(parents=True, exist_ok=True)
-        func_dir.mkdir(parents=True, exist_ok=True)
-        dwi_dir.mkdir(parents=True, exist_ok=True)
+        participants_data = []
         
-        # Obtener todos los archivos DICOM del participante en este experimento
-        dicom_files = DicomFile.objects.filter(
-            participant=participant,
-            experiment=experiment
-        )
-        
-        # Procesar cada archivo DICOM
-        for dicom_file in dicom_files:
-            try:
-                dicom_path = dicom_file.file.path
-                
-                if not os.path.exists(dicom_path):
-                    print(f"⚠️ Archivo DICOM no encontrado: {dicom_path}")
-                    continue
-                
-                # Clasificar el tipo de imagen basándose en el nombre del archivo o metadatos
-                filename_lower = dicom_file.original_filename.lower() if dicom_file.original_filename else ""
-                
-                if "t1" in filename_lower or "anat" in filename_lower:
-                    output_dir = anat_dir
-                    output_basename = f"{subject_id}_T1w"
-                elif "bold" in filename_lower or "func" in filename_lower or "rest" in filename_lower:
-                    output_dir = func_dir
-                    output_basename = f"{subject_id}_task-rest_bold"
-                elif "dwi" in filename_lower or "dti" in filename_lower:
-                    output_dir = dwi_dir
-                    output_basename = f"{subject_id}_dwi"
-                else:
-                    # Por defecto, asumir anat
-                    output_dir = anat_dir
-                    output_basename = f"{subject_id}_T1w"
-                
-                output_nifti = output_dir / f"{output_basename}.nii.gz"
-                
-                # Convertir DICOM a NIfTI
+        # Procesar cada participante
+        for idx, participant in enumerate(participants, start=1):
+            # Normalizar ID: sub-01, sub-02...
+            subject_id = normalize_subject_id(idx)
+            
+            participants_data.append({
+                'participant_id': subject_id,
+                'age': 'n/a', # Podríamos sacar esto de metadatos si existieran
+                'sex': 'n/a',
+                'group': 'control' # Default
+            })
+            
+            subject_dir = bids_root / subject_id
+            
+            # Obtener todos los archivos DICOM del participante en este experimento
+            dicom_files = DicomFile.objects.filter(
+                participant=participant,
+                experiment=experiment
+            )
+            
+            # Procesar cada archivo DICOM
+            for dicom_file in dicom_files:
                 try:
-                    # Intentar conversión con dicom2nifti
-                    temp_dicom_dir = tempfile.mkdtemp()
-                    temp_dicom_path = os.path.join(temp_dicom_dir, 'image.dcm')
+                    dicom_path = dicom_file.file.path
                     
-                    # Leer, anonimizar y guardar temporalmente
+                    if not os.path.exists(dicom_path):
+                        print(f"⚠️ Archivo DICOM no encontrado: {dicom_path}")
+                        continue
+                    
+                    # Detectar modalidad
                     ds = pydicom.dcmread(dicom_path)
-                    ds = anonymize_dicom(ds)
-                    ds.save_as(temp_dicom_path)
+                    modality_folder, suffix = detect_modality(ds)
                     
-                    # shutil.copyfile(dicom_path, temp_dicom_path) # <-- Reemplazado
+                    # Estructura: sub-XX/modality/
+                    # Nota: BIDS a veces usa ses-XX. El usuario pidió sub-01/anat/...
+                    # Si quisiéramos sesiones: sub-01/ses-01/anat/...
+                    # El prompt dice: sub-01/anat/ (sin sesión explícita en el ejemplo principal, 
+                    # pero luego dice "sub-01/anat/"). Seguiré el ejemplo del prompt.
                     
-                    # Intentar convertir
-                    nii_files = list(output_dir.glob("*.nii.gz"))
-                    initial_count = len(nii_files)
+                    output_dir = subject_dir / modality_folder
+                    output_dir.mkdir(parents=True, exist_ok=True)
                     
-                    try:
-                        convert_directory(temp_dicom_dir, output_dir, compression=True)
-                        nii_files = list(output_dir.glob("*.nii.gz"))
-                        
-                        # Si se generó un archivo, renombrarlo
-                        if len(nii_files) > initial_count:
-                            new_file = nii_files[-1]
-                            new_file.rename(output_nifti)
-                    except:
-                        # Si falla, usar método alternativo
-                        # Usar el archivo anonimizado temporal que ya creamos
-                        convert_single_dicom_to_nifti(temp_dicom_path, output_nifti)
+                    output_basename = f"{subject_id}_{suffix}"
                     
-                    # Limpiar directorio temporal
-                    shutil.rmtree(temp_dicom_dir, ignore_errors=True)
+                    # Convertir
+                    print(f"📦 Processing DICOM {dicom_file.id} for {subject_id}/{modality_folder}")
+                    nifti_path, json_path = convert_dicom_to_nifti(dicom_path, output_dir, output_basename)
+                    
+                    if not nifti_path:
+                        print(f"⚠️ Conversion failed for DICOM {dicom_file.id}, skipping...")
+                        continue
                     
                 except Exception as e:
-                    print(f"⚠️ Error convirtiendo {dicom_file.original_filename}: {str(e)}")
+                    print(f"⚠️ Error procesando archivo DICOM {dicom_file.id}: {str(e)}")
+                    traceback.print_exc()
                     continue
-                
-                # Crear archivo JSON sidecar
-                json_path = output_dir / f"{output_basename}.json"
-                metadata = {
-                    "Modality": "MRI",
-                    "Manufacturer": "Unknown",
-                    "PatientID": participant.subject_id,
-                    "InstitutionName": "Anonymous Hospital"
-                }
-                
-                # Añadir metadatos específicos según el tipo
-                if "bold" in output_basename:
-                    metadata["TaskName"] = "rest"
-                    metadata["RepetitionTime"] = 2.0
-                
-                with open(json_path, 'w') as jf:
-                    json.dump(metadata, jf, indent=4)
-                
-                # Para archivos DWI, crear archivos .bval y .bvec (vacíos por ahora)
-                if "dwi" in output_basename:
-                    bval_path = output_dir / f"{output_basename}.bval"
-                    bvec_path = output_dir / f"{output_basename}.bvec"
-                    
-                    with open(bval_path, 'w') as f:
-                        f.write("0\n")
-                    
-                    with open(bvec_path, 'w') as f:
-                        f.write("0 0 0\n")
-                
-            except Exception as e:
-                print(f"⚠️ Error procesando archivo DICOM {dicom_file.id}: {str(e)}")
-                traceback.print_exc()
-                continue
-    
-    # Crear archivo dataset_description.json
-    dataset_description = {
-        "Name": f"BIDS Dataset - {experiment.name}",
-        "BIDSVersion": "1.8.0",
-        "DatasetType": "raw"
-    }
-    
-    with open(bids_root / "dataset_description.json", 'w') as f:
-        json.dump(dataset_description, f, indent=4)
-    
-    # Comprimir todo en un ZIP
-    zip_path = tempfile.NamedTemporaryFile(delete=False, suffix=".zip").name
-    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        for root, dirs, files in os.walk(bids_root):
-            for file in files:
-                full_path = os.path.join(root, file)
-                arcname = os.path.relpath(full_path, temp_dir)
-                zipf.write(full_path, arcname=arcname)
-    
-    # Limpiar directorio temporal
-    shutil.rmtree(temp_dir, ignore_errors=True)
-    
-    # Retornar el archivo ZIP
-    experiment_name_safe = experiment.name.replace(" ", "_").lower()
-    return FileResponse(
-        open(zip_path, 'rb'), 
-        as_attachment=True, 
-        filename=f"{experiment_name_safe}_bids.zip"
-    )
+        
+        # Crear participants.tsv
+        create_participants_tsv(bids_root, participants_data)
+        
+        # Crear dataset_description.json
+        create_dataset_description(bids_root)
+        
+        # Comprimir todo en un ZIP
+        zip_path = tempfile.NamedTemporaryFile(delete=False, suffix=".zip").name
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for root, dirs, files in os.walk(bids_root):
+                for file in files:
+                    full_path = os.path.join(root, file)
+                    arcname = os.path.relpath(full_path, temp_dir) # relative to temp_dir so my_dataset is root
+                    zipf.write(full_path, arcname=arcname)
+        
+        # Retornar el archivo ZIP
+        experiment_name_safe = experiment.name.replace(" ", "_").lower()
+        return FileResponse(
+            open(zip_path, 'rb'), 
+            as_attachment=True, 
+            filename=f"{experiment_name_safe}_bids.zip"
+        )
+        
+    except Exception as e:
+        traceback.print_exc()
+        return HttpResponse(f"Error exportando experimento: {e}", status=500)
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
 def zip_bids_folder(bids_dir):
     zip_path = bids_dir + '.zip'
