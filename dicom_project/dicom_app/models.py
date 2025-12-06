@@ -20,12 +20,26 @@ class Participant(models.Model):
     experiments = models.ManyToManyField(Experiment, related_name='participants', blank=True)
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name} ({self.subject_id})"
+        return f"{self.first_name} {self.last_name}"
 
 class Member(models.Model):
+    ROLE_CHOICES = [
+        ('Líder Científico/a', 'Líder Científico/a'),
+        ('Co-investigador/a', 'Co-investigador/a'),
+        ('Investigador/a Posdoctoral', 'Investigador/a Posdoctoral'),
+        ('Coordinador/a de Investigación', 'Coordinador/a de Investigación'),
+        ('Coordinador/a Clínico', 'Coordinador/a Clínico'),
+        ('Neurólogo/a', 'Neurólogo/a'),
+        ('Técnico/a en Neuroimagen', 'Técnico/a en Neuroimagen'),
+        ('Ingeniero/a Biomédico/a', 'Ingeniero/a Biomédico/a'),
+        ('Especialista en Procesamiento de Imágenes', 'Especialista en Procesamiento de Imágenes'),
+        ('Asistente de Investigación', 'Asistente de Investigación'),
+        ('Bioestadístico/a o Científico/a de Datos', 'Bioestadístico/a o Científico/a de Datos'),
+    ]
+
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
-    role = models.CharField(max_length=100)
+    role = models.CharField(max_length=100, choices=ROLE_CHOICES)
     email = models.EmailField(blank=True)
     experiments = models.ManyToManyField(Experiment, related_name='members', blank=True)
 

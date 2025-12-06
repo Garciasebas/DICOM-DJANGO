@@ -27,16 +27,16 @@ def seed_participants_and_members(apps, schema_editor):
     
     # Create 10 Members with fictional data
     members_data = [
-        {'first_name': 'Roberto', 'last_name': 'Silva', 'role': 'Investigador Principal', 'email': 'roberto.silva@hospital.com'},
-        {'first_name': 'Patricia', 'last_name': 'Morales', 'role': 'Coordinadora de Investigación', 'email': 'patricia.morales@hospital.com'},
-        {'first_name': 'Fernando', 'last_name': 'Castro', 'role': 'Técnico Radiólogo', 'email': 'fernando.castro@hospital.com'},
-        {'first_name': 'Gabriela', 'last_name': 'Vargas', 'role': 'Médica Especialista', 'email': 'gabriela.vargas@hospital.com'},
-        {'first_name': 'Andrés', 'last_name': 'Mendoza', 'role': 'Analista de Datos', 'email': 'andres.mendoza@hospital.com'},
-        {'first_name': 'Carolina', 'last_name': 'Rojas', 'role': 'Enfermera Investigadora', 'email': 'carolina.rojas@hospital.com'},
-        {'first_name': 'Javier', 'last_name': 'Ortiz', 'role': 'Bioestadístico', 'email': 'javier.ortiz@hospital.com'},
+        {'first_name': 'Roberto', 'last_name': 'Silva', 'role': 'Líder Científico/a', 'email': 'roberto.silva@hospital.com'},
+        {'first_name': 'Patricia', 'last_name': 'Morales', 'role': 'Coordinador/a de Investigación', 'email': 'patricia.morales@hospital.com'},
+        {'first_name': 'Fernando', 'last_name': 'Castro', 'role': 'Técnico/a en Neuroimagen', 'email': 'fernando.castro@hospital.com'},
+        {'first_name': 'Gabriela', 'last_name': 'Vargas', 'role': 'Neurólogo/a', 'email': 'gabriela.vargas@hospital.com'},
+        {'first_name': 'Andrés', 'last_name': 'Mendoza', 'role': 'Bioestadístico/a o Científico/a de Datos', 'email': 'andres.mendoza@hospital.com'},
+        {'first_name': 'Carolina', 'last_name': 'Rojas', 'role': 'Co-investigador/a', 'email': 'carolina.rojas@hospital.com'},
+        {'first_name': 'Javier', 'last_name': 'Ortiz', 'role': 'Bioestadístico/a o Científico/a de Datos', 'email': 'javier.ortiz@hospital.com'},
         {'first_name': 'Daniela', 'last_name': 'Herrera', 'role': 'Asistente de Investigación', 'email': 'daniela.herrera@hospital.com'},
-        {'first_name': 'Martín', 'last_name': 'Navarro', 'role': 'Técnico en Informática', 'email': 'martin.navarro@hospital.com'},
-        {'first_name': 'Lucía', 'last_name': 'Campos', 'role': 'Coordinadora Administrativa', 'email': 'lucia.campos@hospital.com'},
+        {'first_name': 'Martín', 'last_name': 'Navarro', 'role': 'Ingeniero/a Biomédico/a', 'email': 'martin.navarro@hospital.com'},
+        {'first_name': 'Lucía', 'last_name': 'Campos', 'role': 'Coordinador/a Clínico', 'email': 'lucia.campos@hospital.com'},
     ]
     
     for data in members_data:
