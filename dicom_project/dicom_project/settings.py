@@ -79,12 +79,9 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'HOST': 'localhost',
         'PORT': '5432',
-        'NAME': 'dicom_db',
+        'NAME': 'postgres',
         'USER': 'postgres',
-        'PASSWORD': 'Invocador1998',
-        'OPTIONS': {
-            'client_encoding': 'UTF8',
-        },
+        'PASSWORD': 'garcia2012',
     }
 }
 
