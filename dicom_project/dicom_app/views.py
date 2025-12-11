@@ -3,7 +3,8 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.db.models import Q
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
-from django.http import FileResponse, Http404, HttpResponse
+from django.http import FileResponse, Http404, HttpResponse, JsonResponse
+from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 import os
@@ -730,4 +731,84 @@ def dicom_image_view(request, dicom_id):
     except Exception as e:
         traceback.print_exc()
         return HttpResponse(f"Error procesando imagen DICOM: {str(e)}", status=500)
+
+@require_POST
+def create_participant_ajax(request):
+    try:
+        data = json.loads(request.body)
+        full_name = data.get('full_name', '').strip()
+        
+        if not full_name:
+            return JsonResponse({'status': 'error', 'message': 'El nombre es obligatorio.'}, status=400)
+            
+        # Split name
+        parts = full_name.split(' ', 1)
+        first_name = parts[0]
+        last_name = parts[1] if len(parts) > 1 else ''
+        
+        # Generate subject_id
+        # We use a simple strategy: SUB- + random 6 chars
+        subject_id = f"SUB-{uuid.uuid4().hex[:6].upper()}"
+        
+        participant = Participant.objects.create(
+            subject_id=subject_id,
+            first_name=first_name,
+            last_name=last_name
+        )
+        
+        return JsonResponse({
+            'status': 'success',
+            'id': participant.id,
+            'value': f"{participant.first_name} {participant.last_name}"
+        })
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+@require_POST
+def create_member_ajax(request):
+    try:
+        data = json.loads(request.body)
+        full_name = data.get('full_name', '').strip()
+        role = data.get('role', '').strip()
+        
+        if not full_name or not role:
+            return JsonResponse({'status': 'error', 'message': 'Nombre y rol son obligatorios.'}, status=400)
+            
+        parts = full_name.split(' ', 1)
+        first_name = parts[0]
+        last_name = parts[1] if len(parts) > 1 else ''
+        
+        member = Member.objects.create(
+            first_name=first_name,
+            last_name=last_name,
+            role=role
+        )
+        
+        return JsonResponse({
+            'status': 'success',
+            'id': member.id,
+            'value': f"{member.first_name} {member.last_name} - {member.role}"
+        })
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+@require_POST
+def update_experiment_description(request, pk):
+    try:
+        experiment = get_object_or_404(Experiment, pk=pk)
+        data = json.loads(request.body)
+        description = data.get('description', '').strip()
+        
+        experiment.description = description
+        experiment.save()
+        
+        return JsonResponse({
+            'status': 'success',
+            'description': experiment.description
+        })
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+
 

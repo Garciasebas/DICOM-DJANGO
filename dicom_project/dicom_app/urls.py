@@ -23,7 +23,10 @@ from .views import (
     upload_success,
     participant_experiments,
     participant_experiment_dicoms,
-    dicom_image_view
+    dicom_image_view,
+    create_participant_ajax,
+    create_member_ajax,
+    update_experiment_description
 )
 
 from django.views.generic import RedirectView
@@ -61,4 +64,9 @@ urlpatterns = [
     path('upload/', upload_dicom, name='upload_dicom'),
     path('search/', DicomFileListView.as_view(), name='dicom_search'),
     path('dicom/<int:pk>/export_bids/', export_dicom_to_bids, name='export_dicom_to_bids'),
+    
+    # AJAX URLs
+    path('ajax/participant/create/', create_participant_ajax, name='create_participant_ajax'),
+    path('ajax/member/create/', create_member_ajax, name='create_member_ajax'),
+    path('experiment/<int:pk>/update_description/', update_experiment_description, name='update_experiment_description'),
 ]

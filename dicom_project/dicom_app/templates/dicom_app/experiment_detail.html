@@ -11,7 +11,11 @@
             <h2 class="form-title-left">Detalle del Experimentos</h2>
             <p class="detail-meta-text"><strong>Fecha de creación:</strong> {{ experiment.created_at|date:"Y-m-d H:i" }}
             </p>
-            <p class="detail-meta-text"><strong>Descripción:</strong></p>
+            <p class="detail-meta-text"><strong>Descripción:</strong>
+                <button id="btn-edit-description" class="btn-edit-small" title="Editar descripción">
+                    <i class="fas fa-pen"></i> Editar
+                </button>
+            </p>
         </div>
         <div class="form-actions-right">
             <a href="{% url 'experiment_delete' experiment.pk %}" class="btn-delete-red">
@@ -24,7 +28,18 @@
     </div>
 
     <div class="description-textarea-box">
-        <div class="textarea-readonly">{{ experiment.description }}</div>
+        <!-- Display Mode -->
+        <div id="description-display" class="textarea-readonly">{{ experiment.description|linebreaksbr }}</div>
+
+        <!-- Edit Mode -->
+        <div id="description-edit" style="display: none;">
+            <textarea id="description-input" class="textarea-custom"
+                style="width: 100%; min-height: 150px;">{{ experiment.description }}</textarea>
+            <div class="form-actions-right" style="margin-top: 10px; justify-content: flex-end;">
+                <button id="btn-cancel-edit" class="btn-cancel-outline">Cancelar</button>
+                <button id="btn-save-description" class="btn-save-teal">Guardar cambios</button>
+            </div>
+        </div>
     </div>
 
     <h3 class="section-title-centered-large">Participantes</h3>
@@ -71,4 +86,98 @@
         {% endfor %}
     </div>
 </div>
+
+<style>
+    .btn-edit-small {
+        background: none;
+        border: none;
+        color: #BDBDBD;
+        cursor: pointer;
+        font-size: 0.85rem;
+        margin-left: 8px;
+        text-decoration: underline;
+        transition: color 0.2s;
+        padding: 0;
+    }
+
+    .btn-edit-small:hover {
+        color: #2B7A9B;
+    }
+
+    /* Fix for linebreaks in readonly view */
+    .textarea-readonly {
+        white-space: pre-wrap;
+        min-height: 100px;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const editBtn = document.getElementById('btn-edit-description');
+        const displayDiv = document.getElementById('description-display');
+        const editDiv = document.getElementById('description-edit');
+        const input = document.getElementById('description-input');
+        const cancelBtn = document.getElementById('btn-cancel-edit');
+        const saveBtn = document.getElementById('btn-save-description');
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : '{{ csrf_token }}';
+
+        // Toggle Modes
+        editBtn.addEventListener('click', () => {
+            displayDiv.style.display = 'none';
+            editDiv.style.display = 'block';
+            editBtn.style.display = 'none';
+            input.focus();
+        });
+
+        cancelBtn.addEventListener('click', () => {
+            displayDiv.style.display = 'block';
+            editDiv.style.display = 'none';
+            editBtn.style.display = 'inline-block';
+            // Reset value
+            input.value = displayDiv.innerText;
+        });
+
+        saveBtn.addEventListener('click', () => {
+            const newDescription = input.value;
+            const originalText = displayDiv.innerText;
+
+            // Optimistic UI update could be done here, but let's wait for server
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Guardando...';
+
+            fetch("{% url 'update_experiment_description' experiment.pk %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ description: newDescription })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = 'Guardar cambios';
+
+                    if (data.status === 'success') {
+                        displayDiv.innerText = data.description; // or innerHTML if we want HTML safe
+                        // Update textarea as well to sync
+                        input.value = data.description;
+
+                        // Switch back
+                        displayDiv.style.display = 'block';
+                        editDiv.style.display = 'none';
+                        editBtn.style.display = 'inline-block';
+                    } else {
+                        alert('Error al guardar: ' + data.message);
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = 'Guardar cambios';
+                    alert('Error de conexión');
+                });
+        });
+    });
+</script>
 {% endblock %}

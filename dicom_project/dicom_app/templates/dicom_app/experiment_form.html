@@ -166,6 +166,100 @@
     .multiselect-dropdown::-webkit-scrollbar-thumb:hover {
         background: #9ca3af;
     }
+
+    /* Modal Styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.2s;
+    }
+
+    .modal-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .modal-card {
+        background: white;
+        padding: 24px;
+        border-radius: 12px;
+        width: 100%;
+        max-width: 400px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        transform: scale(0.95);
+        transition: transform 0.2s;
+    }
+
+    .modal-overlay.active .modal-card {
+        transform: scale(1);
+    }
+
+    .modal-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 16px;
+        color: #111827;
+    }
+
+    .modal-input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        margin-bottom: 12px;
+        font-size: 14px;
+    }
+
+    .modal-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+
+    .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        margin-top: 20px;
+    }
+
+    .btn-icon-add {
+        background: #2B7A9B;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 20px;
+        line-height: 0;
+        padding: 0;
+        transition: background 0.2s;
+        margin-left: 10px;
+    }
+
+    .btn-icon-add:hover {
+        background: #236a8a;
+    }
+
+    .section-header-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+    }
 </style>
 
 <div class="content-card">
@@ -195,7 +289,11 @@
 
         <div class="form-grid-two-column">
             <div class="dynamic-section">
-                <h3 class="section-title-left">Participantes</h3>
+                <div class="section-header-row">
+                    <h3 class="section-title-left" style="margin-bottom: 0;">Participantes</h3>
+                    <button type="button" id="add-participant-btn" class="btn-icon-add"
+                        title="Crear nuevo participante">+</button>
+                </div>
                 <div class="custom-multiselect" id="participants-multiselect">
                     <div class="multiselect-container">
                         <div class="multiselect-tags" id="participants-tags"></div>
@@ -207,7 +305,11 @@
             </div>
 
             <div class="dynamic-section">
-                <h3 class="section-title-left">Miembros del Equipo</h3>
+                <div class="section-header-row">
+                    <h3 class="section-title-left" style="margin-bottom: 0;">Miembros del Equipo</h3>
+                    <button type="button" id="add-member-btn" class="btn-icon-add"
+                        title="Crear nuevo miembro">+</button>
+                </div>
                 <div class="custom-multiselect" id="members-multiselect">
                     <div class="multiselect-container">
                         <div class="multiselect-tags" id="members-tags"></div>
@@ -219,6 +321,44 @@
             </div>
         </div>
     </form>
+</div>
+
+<!-- Modal Create Participant -->
+<div id="modal-participant" class="modal-overlay">
+    <div class="modal-card">
+        <h3 class="modal-title">Nuevo Participante</h3>
+        <input type="text" id="new-participant-name" class="modal-input" placeholder="Nombre y Apellido">
+        <div class="modal-actions">
+            <button type="button" id="cancel-participant" class="btn-cancel-outline">Cancelar</button>
+            <button type="button" id="save-participant" class="btn-save-teal">Confirmar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Create Member -->
+<div id="modal-member" class="modal-overlay">
+    <div class="modal-card">
+        <h3 class="modal-title">Nuevo Miembro</h3>
+        <input type="text" id="new-member-name" class="modal-input" placeholder="Nombre y Apellido">
+        <select id="new-member-role" class="modal-input">
+            <option value="">Seleccionar Rol</option>
+            <option value="Líder Científico/a">Líder Científico/a</option>
+            <option value="Co-investigador/a">Co-investigador/a</option>
+            <option value="Investigador/a Posdoctoral">Investigador/a Posdoctoral</option>
+            <option value="Coordinador/a de Investigación">Coordinador/a de Investigación</option>
+            <option value="Coordinador/a Clínico">Coordinador/a Clínico</option>
+            <option value="Neurólogo/a">Neurólogo/a</option>
+            <option value="Técnico/a en Neuroimagen">Técnico/a en Neuroimagen</option>
+            <option value="Ingeniero/a Biomédico/a">Ingeniero/a Biomédico/a</option>
+            <option value="Especialista en Procesamiento de Imágenes">Especialista en Procesamiento de Imágenes</option>
+            <option value="Asistente de Investigación">Asistente de Investigación</option>
+            <option value="Bioestadístico/a o Científico/a de Datos">Bioestadístico/a o Científico/a de Datos</option>
+        </select>
+        <div class="modal-actions">
+            <button type="button" id="cancel-member" class="btn-cancel-outline">Cancelar</button>
+            <button type="button" id="save-member" class="btn-save-teal">Confirmar</button>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -373,13 +513,140 @@
         // Initialize custom multi-selects
         const participantsSelect = document.querySelector('select[name="participants"]');
         const membersSelect = document.querySelector('select[name="members"]');
+        let participantsWidget = null;
+        let membersWidget = null;
 
         if (participantsSelect) {
-            new CustomMultiSelect('participants-multiselect', participantsSelect);
+            participantsWidget = new CustomMultiSelect('participants-multiselect', participantsSelect);
         }
 
         if (membersSelect) {
-            new CustomMultiSelect('members-multiselect', membersSelect);
+            membersWidget = new CustomMultiSelect('members-multiselect', membersSelect);
+        }
+
+        // Quick Creation Logic
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        function toggleModal(id, show) {
+            const modal = document.getElementById(id);
+            if (show) modal.classList.add('active');
+            else modal.classList.remove('active');
+        }
+
+        // Participant Logic
+        const addPartBtn = document.getElementById('add-participant-btn');
+        if (addPartBtn) {
+            addPartBtn.addEventListener('click', () => {
+                document.getElementById('new-participant-name').value = '';
+                toggleModal('modal-participant', true);
+            });
+        }
+
+        const cancelPartBtn = document.getElementById('cancel-participant');
+        if (cancelPartBtn) {
+            cancelPartBtn.addEventListener('click', () => toggleModal('modal-participant', false));
+        }
+
+        const savePartBtn = document.getElementById('save-participant');
+        if (savePartBtn) {
+            savePartBtn.addEventListener('click', () => {
+                const nameInput = document.getElementById('new-participant-name');
+                const name = nameInput.value;
+                if (!name) {
+                    alert('Por favor ingresa un nombre.');
+                    return;
+                }
+
+                fetch("{% url 'create_participant_ajax' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ full_name: name })
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Create new option
+                            const option = new Option(data.value, data.id, true, true);
+                            participantsSelect.add(option);
+
+                            // Add to custom widget
+                            if (participantsWidget) {
+                                participantsWidget.buildDropdown(); // Rebuild to include new option
+                                participantsWidget.toggleOption(data.id.toString(), data.value);
+                            }
+
+                            toggleModal('modal-participant', false);
+                        } else {
+                            alert('Error: ' + data.message);
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert('Error de conexión');
+                    });
+            });
+        }
+
+        // Member Logic
+        const addMemBtn = document.getElementById('add-member-btn');
+        if (addMemBtn) {
+            addMemBtn.addEventListener('click', () => {
+                document.getElementById('new-member-name').value = '';
+                document.getElementById('new-member-role').value = '';
+                toggleModal('modal-member', true);
+            });
+        }
+
+        const cancelMemBtn = document.getElementById('cancel-member');
+        if (cancelMemBtn) {
+            cancelMemBtn.addEventListener('click', () => toggleModal('modal-member', false));
+        }
+
+        const saveMemBtn = document.getElementById('save-member');
+        if (saveMemBtn) {
+            saveMemBtn.addEventListener('click', () => {
+                const name = document.getElementById('new-member-name').value;
+                const role = document.getElementById('new-member-role').value;
+
+                if (!name || !role) {
+                    alert('Por favor completa todos los campos.');
+                    return;
+                }
+
+                fetch("{% url 'create_member_ajax' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ full_name: name, role: role })
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Create new option
+                            const option = new Option(data.value, data.id, true, true);
+                            membersSelect.add(option);
+
+                            // Add to custom widget
+                            if (membersWidget) {
+                                membersWidget.buildDropdown();
+                                membersWidget.toggleOption(data.id.toString(), data.value);
+                            }
+
+                            toggleModal('modal-member', false);
+                        } else {
+                            alert('Error: ' + data.message);
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        alert('Error de conexión');
+                    });
+            });
         }
     });
 </script>
