@@ -333,7 +333,39 @@ def export_experiment_to_bids(request, experiment_id):
                     output_dir = subject_dir / modality_folder
                     output_dir.mkdir(parents=True, exist_ok=True)
                     
-                    output_basename = f"{subject_id}_{suffix}"
+                    # Logic to detect existing files and increment index
+                    if modality_folder == 'func':
+                        # Pattern: sub-01_task-rest_run-XX_bold
+                        # We glob for *task-rest*bold.nii.gz to count existing runs
+                        # Or if suffix is just 'task-rest_bold', we can split it or look for the unique part
+                        
+                        # In detect_modality for func we return suffix="task-rest_bold"
+                        # We want: sub-XX_task-rest_run-XX_bold
+                        
+                        # Count existing .nii.gz files in this folder that match pattern
+                        existing_files = list(output_dir.glob("*_bold.nii.gz"))
+                        run_index = len(existing_files) + 1
+                        run_entity = f"run-{run_index:02d}"
+                        
+                        # Construct basename
+                        # suffix is 'task-rest_bold', we want to insert run-XX
+                        if "task-rest" in suffix:
+                            # format: sub-XX_task-rest_run-XX_bold
+                            output_basename = f"{subject_id}_task-rest_{run_entity}_bold"
+                        else:
+                            # fallback if suffix changes
+                            output_basename = f"{subject_id}_{run_entity}_{suffix}"
+                            
+                    else:
+                        # For anat and dwi use 'acq'
+                        # sub-XX_acq-XX_T1w or sub-XX_acq-XX_dwi
+                        
+                        # Count files with same suffix
+                        existing_files = list(output_dir.glob(f"*{suffix}.nii.gz"))
+                        acq_index = len(existing_files) + 1
+                        acq_entity = f"acq-{acq_index:02d}"
+                        
+                        output_basename = f"{subject_id}_{acq_entity}_{suffix}"
                     
                     # Convertir
                     print(f"📦 Processing DICOM {dicom_file.id} for {subject_id}/{modality_folder}")
