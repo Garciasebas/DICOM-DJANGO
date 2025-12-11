@@ -13,13 +13,14 @@
         </a>
     </div>
 
-    <div class="search-bar">
-        <input type="text" class="search-input" placeholder="Buscar por experimento">
-        <button class="search-icon-btn">
+    <form method="get" class="search-bar">
+        <input type="text" name="q" class="search-input" placeholder="Buscar por experimento"
+            value="{{ request.GET.q|default:'' }}">
+        <button type="submit" class="search-icon-btn">
             <i class="fas fa-search"></i>
             <span>Buscar</span>
         </button>
-    </div>
+    </form>
 
     <table class="custom-table">
         <thead>

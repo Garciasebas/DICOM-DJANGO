@@ -434,6 +434,12 @@ def dashboard(request):
         return redirect('participant_dashboard')
         
     experiments = Experiment.objects.filter(status='Active')
+    
+    # Search functionality
+    query = request.GET.get('q')
+    if query:
+        experiments = experiments.filter(name__icontains=query)
+        
     return render(request, 'dicom_app/dashboard.html', {'experiments': experiments})
 
 @login_required
@@ -445,7 +451,11 @@ def participant_dashboard(request):
     participants = Participant.objects.all()
     query = request.GET.get('q')
     if query:
-        participants = participants.filter(subject_id__icontains=query)
+        participants = participants.filter(
+            Q(subject_id__icontains=query) |
+            Q(first_name__icontains=query) |
+            Q(last_name__icontains=query)
+        )
     
     # Calcular la última participación para cada participante desde DICOM uploads
     participants_with_last_date = []
