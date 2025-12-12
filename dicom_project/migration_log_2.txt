@@ -1,0 +1,72 @@
+Operations to perform:
+  Apply all migrations: admin, auth, contenttypes, dicom_app, sessions
+Running migrations:
+Traceback (most recent call last):
+  File "C:\Users\Sebastian Garcia\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\db\backends\utils.py", line 103, in _execute
+    return self.cursor.execute(sql)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.DuplicateColumn: ya existe la columna ½email╗ en la relaci¾n ½dicom_app_participant╗
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Sebastian Garcia\Documents\Proyecto DICOM\DICOM-Python\dicom_project\manage.py", line 22, in <module>
+    main()
+  File "C:\Users\Sebastian Garcia\Documents\Proyecto DICOM\DICOM-Python\dicom_project\manage.py", line 18, in main
+    execute_from_command_line(sys.argv)
+  File "C:\Users\Sebastian Garcia\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\core\management\__init__.py", line 442, in execute_from_command_line
+    utility.execute()
+  File "C:\Users\Sebastian Garcia\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\core\management\__init__.py", line 436, in execute
+    self.fetch_command(subcommand).run_from_argv(self.argv)
+  File "C:\Users\Sebastian Garcia\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\core\management\base.py", line 413, in run_from_argv
+    self.execute(*args, **cmd_options)
+  File "C:\Users\Sebastian Garcia\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\core\management\base.py", line 459, in execute
+    output = self.handle(*args, **options)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sebastian Garcia\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\core\management\base.py", line 107, in wrapper
+    res = handle_func(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sebastian Garcia\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\core\management\commands\migrate.py", line 357, in handle
+    post_migrate_state = executor.migrate(
+                         ^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sebastian Garcia\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\db\migrations\executor.py", line 135, in migrate
+    state = self._migrate_all_forwards(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sebastian Garcia\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\db\migrations\executor.py", line 167, in _migrate_all_forwards
+    state = self.apply_migration(
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sebastian Garcia\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\db\migrations\executor.py", line 255, in apply_migration
+    state = migration.apply(state, schema_editor)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sebastian Garcia\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\db\migrations\migration.py", line 132, in apply
+    operation.database_forwards(
+  File "C:\Users\Sebastian Garcia\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\db\migrations\operations\fields.py", line 110, in database_forwards
+    schema_editor.add_field(
+  File "C:\Users\Sebastian Garcia\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\db\backends\base\schema.py", line 768, in add_field
+    self.execute(sql, params or None)
+  File "C:\Users\Sebastian Garcia\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\db\backends\postgresql\schema.py", line 48, in execute
+    return super().execute(sql, None)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sebastian Garcia\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\db\backends\base\schema.py", line 202, in execute
+    cursor.execute(sql, params)
+  File "C:\Users\Sebastian Garcia\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\db\backends\utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sebastian Garcia\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sebastian Garcia\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sebastian Garcia\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Sebastian Garcia\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\Sebastian Garcia\AppData\Local\Programs\Python\Python312\Lib\site-packages\django\db\backends\utils.py", line 103, in _execute
+    return self.cursor.execute(sql)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: ya existe la columna ½email╗ en la relaci¾n ½dicom_app_participant╗
+
+  Applying dicom_app.0006_member_remove_dicomtag_dicom_app_d_tag_680663_idx_and_more...

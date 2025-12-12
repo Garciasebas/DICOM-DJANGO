@@ -41,61 +41,62 @@ class Migration(migrations.Migration):
             reverse_sql=migrations.RunSQL.noop,
         ),
         # Drop the foreign key constraint
-        migrations.RunSQL(
-            sql="ALTER TABLE dicom_app_participant DROP CONSTRAINT IF EXISTS dicom_app_participant_experiment_id_fkey CASCADE;",
-            reverse_sql=migrations.RunSQL.noop,
-        ),
+        # migrations.RunSQL(
+        #     sql="ALTER TABLE dicom_app_participant DROP CONSTRAINT IF EXISTS dicom_app_participant_experiment_id_fkey CASCADE;",
+        #     reverse_sql=migrations.RunSQL.noop,
+        # ),
         # Drop the experiment_id column
-        migrations.RunSQL(
-            sql="ALTER TABLE dicom_app_participant DROP COLUMN IF EXISTS experiment_id;",
-            reverse_sql=migrations.RunSQL.noop,
-        ),
+        # migrations.RunSQL(
+        #     sql="ALTER TABLE dicom_app_participant DROP COLUMN IF EXISTS experiment_id;",
+        #     reverse_sql=migrations.RunSQL.noop,
+        # ),
         # Add new fields to participant
-        migrations.RunSQL(
-            sql="ALTER TABLE dicom_app_participant ADD COLUMN IF NOT EXISTS email VARCHAR(254) DEFAULT '';",
-            reverse_sql=migrations.RunSQL.noop,
-        ),
-        migrations.RunSQL(
-            sql="ALTER TABLE dicom_app_participant ADD COLUMN IF NOT EXISTS first_name VARCHAR(100) DEFAULT '';",
-            reverse_sql=migrations.RunSQL.noop,
-        ),
-        migrations.RunSQL(
-            sql="ALTER TABLE dicom_app_participant ADD COLUMN IF NOT EXISTS last_name VARCHAR(100) DEFAULT '';",
-            reverse_sql=migrations.RunSQL.noop,
-        ),
-        migrations.RunSQL(
-            sql="ALTER TABLE dicom_app_participant ADD COLUMN IF NOT EXISTS phone VARCHAR(20) DEFAULT '';",
-            reverse_sql=migrations.RunSQL.noop,
-        ),
+        # Add new fields to participant
+        # migrations.RunSQL(
+        #     sql="ALTER TABLE dicom_app_participant ADD COLUMN IF NOT EXISTS email VARCHAR(254) DEFAULT '';",
+        #     reverse_sql=migrations.RunSQL.noop,
+        # ),
+        # migrations.RunSQL(
+        #     sql="ALTER TABLE dicom_app_participant ADD COLUMN IF NOT EXISTS first_name VARCHAR(100) DEFAULT '';",
+        #     reverse_sql=migrations.RunSQL.noop,
+        # ),
+        # migrations.RunSQL(
+        #     sql="ALTER TABLE dicom_app_participant ADD COLUMN IF NOT EXISTS last_name VARCHAR(100) DEFAULT '';",
+        #     reverse_sql=migrations.RunSQL.noop,
+        # ),
+        # migrations.RunSQL(
+        #     sql="ALTER TABLE dicom_app_participant ADD COLUMN IF NOT EXISTS phone VARCHAR(20) DEFAULT '';",
+        #     reverse_sql=migrations.RunSQL.noop,
+        # ),
         # Make subject_id unique
-        migrations.RunSQL(
-            sql="ALTER TABLE dicom_app_participant ADD CONSTRAINT dicom_app_participant_subject_id_unique UNIQUE (subject_id);",
-            reverse_sql=migrations.RunSQL.noop,
-        ),
+        # migrations.RunSQL(
+        #     sql="ALTER TABLE dicom_app_participant ADD CONSTRAINT dicom_app_participant_subject_id_unique UNIQUE (subject_id);",
+        #     reverse_sql=migrations.RunSQL.noop,
+        # ),
         # Create the many-to-many table for participant-experiment relationship
-        migrations.RunSQL(
-            sql="""
-            CREATE TABLE IF NOT EXISTS dicom_app_participant_experiments (
-                id BIGSERIAL PRIMARY KEY,
-                participant_id BIGINT NOT NULL REFERENCES dicom_app_participant(id) ON DELETE CASCADE,
-                experiment_id BIGINT NOT NULL REFERENCES dicom_app_experiment(id) ON DELETE CASCADE,
-                UNIQUE (participant_id, experiment_id)
-            );
-            """,
-            reverse_sql=migrations.RunSQL.noop,
-        ),
+        # migrations.RunSQL(
+        #     sql="""
+        #     CREATE TABLE IF NOT EXISTS dicom_app_participant_experiments (
+        #         id BIGSERIAL PRIMARY KEY,
+        #         participant_id BIGINT NOT NULL REFERENCES dicom_app_participant(id) ON DELETE CASCADE,
+        #         experiment_id BIGINT NOT NULL REFERENCES dicom_app_experiment(id) ON DELETE CASCADE,
+        #         UNIQUE (participant_id, experiment_id)
+        #     );
+        #     """,
+        #     reverse_sql=migrations.RunSQL.noop,
+        # ),
         # Create the many-to-many table for member-experiment relationship
-        migrations.RunSQL(
-            sql="""
-            CREATE TABLE IF NOT EXISTS dicom_app_member_experiments (
-                id BIGSERIAL PRIMARY KEY,
-                member_id BIGINT NOT NULL REFERENCES dicom_app_member(id) ON DELETE CASCADE,
-                experiment_id BIGINT NOT NULL REFERENCES dicom_app_experiment(id) ON DELETE CASCADE,
-                UNIQUE (member_id, experiment_id)
-            );
-            """,
-            reverse_sql=migrations.RunSQL.noop,
-        ),
+        # migrations.RunSQL(
+        #     sql="""
+        #     CREATE TABLE IF NOT EXISTS dicom_app_member_experiments (
+        #         id BIGSERIAL PRIMARY KEY,
+        #         member_id BIGINT NOT NULL REFERENCES dicom_app_member(id) ON DELETE CASCADE,
+        #         experiment_id BIGINT NOT NULL REFERENCES dicom_app_experiment(id) ON DELETE CASCADE,
+        #         UNIQUE (member_id, experiment_id)
+        #     );
+        #     """,
+        #     reverse_sql=migrations.RunSQL.noop,
+        # ),
         # Update Django's state to match the database
         migrations.RemoveField(
             model_name='participant',
