@@ -15,7 +15,7 @@ from pathlib import Path
 from dicom2nifti import convert_directory
 import json
 import zipfile
-from .models import DicomFile, DicomTag, Experiment, Participant, ConsentFile
+from .models import DicomFile, DicomTag, Experiment, Participant, ConsentFile, Member
 from .forms import DicomFileForm, DicomTagForm, DicomUploadForm, ExperimentForm
 import uuid
 import numpy as np
